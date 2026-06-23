@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.env
+data/gymtrack.db
+data/gymtrack.db-journal
+data/gymtrack.db-wal
+data/gymtrack.db-shm
