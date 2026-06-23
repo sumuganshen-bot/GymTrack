@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GymTrack</title>
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2937; background: #f3f4f6; }
+  button { font: inherit; cursor: pointer; }
+  input, select, textarea, button { font: inherit; }
+
+  /* ---- Login ---- */
+  #login-screen {
+    position: fixed; inset: 0; background: #BFBFBF;
+    display: flex; align-items: center; justify-content: center; z-index: 999;
+  }
+  .login-card {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    background: #fff; padding: 32px; width: 340px; border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+  }
+  .login-card h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-card p.sub { margin: 0 0 18px; color: #6b7280; font-size: 13px; }
+  .login-card label { display: block; margin: 10px 0 4px; font-size: 12px; color: #374151; }
+  .login-card input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; }
+  .login-card button {
+    width: 100%; margin-top: 16px; padding: 10px 12px;
+    background: #111827; color: #fff; border: 0; border-radius: 6px; font-weight: 600;
+  }
+  .login-card .err { color: #b91c1c; font-size: 12px; margin-top: 8px; min-height: 16px; }
+  .login-card .hint { color: #6b7280; font-size: 11px; margin-top: 12px; line-height: 1.5; }
+
+  /* ---- App shell ---- */
+  header.topbar {
+    background: #111827; color: #fff; padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand { font-weight: 700; letter-spacing: .3px; }
+  .who { font-size: 13px; opacity: .85; }
+  .who button { margin-left: 12px; background: transparent; color: #fff; border: 1px solid #4b5563; padding: 4px 10px; border-radius: 4px; }
+  nav.tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 12px; overflow-x: auto; }
+  nav.tabs button {
+    background: transparent; border: 0; padding: 12px 16px; color: #374151;
+    border-bottom: 2px solid transparent; font-weight: 500;
+  }
+  nav.tabs button.active { color: #111827; border-bottom-color: #111827; }
+  main { padding: 18px 22px 60px; max-width: 1400px; margin: 0 auto; }
+
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 16px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .col { flex: 1 1 240px; }
+  .kpi { font-size: 24px; font-weight: 700; }
+  .muted { color: #6b7280; font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.hot { background: #fee2e2; color: #b91c1c; }
+  .pill.cold { background: #dbeafe; color: #1d4ed8; }
+  .pill.green { background: #dcfce7; color: #166534; }
+  .pill.amber { background: #fef3c7; color: #92400e; }
+  .pill.gray { background: #e5e7eb; color: #374151; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+  th { background: #f9fafb; font-weight: 600; color: #374151; }
+  tr:hover td { background: #fafafa; }
+
+  .btn { background: #111827; color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; font-weight: 500; }
+  .btn.secondary { background: #fff; color: #111827; border: 1px solid #d1d5db; }
+  .btn.small { padding: 4px 8px; font-size: 12px; }
+  .btn.danger { background: #b91c1c; }
+
+  /* progress */
+  .progress { background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden; }
+  .progress > div { background: #16a34a; height: 100%; }
+
+  /* pipeline */
+  .pipeline { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+  .pipe-col { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; min-height: 260px; }
+  .pipe-col h3 { margin: 0 0 8px; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: .4px; display: flex; justify-content: space-between; align-items: center; }
+  .pipe-col h3 .count { background: #e5e7eb; color: #374151; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .lead-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 8px;
+    cursor: grab; font-size: 13px;
+  }
+  .lead-card.dragging { opacity: .4; }
+  .pipe-col.drop-over { background: #eef2ff; }
+  .lead-card .lname { font-weight: 600; }
+  .lead-card .lmeta { color: #6b7280; font-size: 11px; margin-top: 2px; }
+
+  /* calendar */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-cell { background: #fff; border: 1px solid #e5e7eb; min-height: 80px; padding: 4px; font-size: 11px; }
+  .cal-cell .d { font-weight: 600; color: #6b7280; }
+  .cal-cell.today { outline: 2px solid #111827; }
+  .cal-evt { background: #dbeafe; color: #1d4ed8; padding: 2px 4px; margin-top: 2px; border-radius: 3px; cursor: pointer; }
+  .cal-evt.tour { background: #dcfce7; color: #166534; }
+  .cal-evt.followup { background: #fef3c7; color: #92400e; }
+  .cal-evt.call { background: #ede9fe; color: #5b21b6; }
+
+  /* modal */
+  .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 500; }
+  .modal { background: #fff; border-radius: 8px; padding: 20px; width: 440px; max-width: 95vw; max-height: 90vh; overflow: auto; }
+  .modal h3 { margin: 0 0 12px; }
+  .modal label { display: block; font-size: 12px; color: #374151; margin: 8px 0 4px; }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .bar-row .lbl { flex: 0 0 110px; }
+  .bar-row .bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+  .bar-row .bar > div { height: 100%; background: #2563eb; }
+  .bar-row .val { flex: 0 0 50px; text-align: right; color: #374151; }
+
+  .alert {
+    background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+    padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px;
+  }
+
+  details.audit { margin-top: 4px; }
+  details.audit summary { cursor: pointer; font-size: 11px; color: #6b7280; }
+  details.audit .trail { font-size: 11px; color: #374151; padding-left: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>GymTrack</h1>
+    <p class="sub">Sign in to continue</p>
+    <form id="login-form">
+      <label>Username</label>
+      <input id="login-username" autocomplete="username" required />
+      <label>Password</label>
+      <input id="login-password" type="password" autocomplete="current-password" required />
+      <button type="submit">Sign in</button>
+      <div class="err" id="login-error"></div>
+    </form>
+    <div class="hint">
+      Demo: <b>sumugan / sc123</b><br/>
+      Owner: <b>eden / eden123</b>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" style="display:none">
+  <header class="topbar">
+    <div class="brand">GymTrack</div>
+    <div class="who">
+      <span id="who-text"></span>
+      <button id="logout-btn">Log out</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tab-nav"></nav>
+  <main id="view"></main>
+</div>
+
+<script>
+// ============ State ============
+const state = {
+  token: localStorage.getItem('gymtrack.token') || null,
+  user: JSON.parse(localStorage.getItem('gymtrack.user') || 'null'),
+  leads: [],
+  appointments: [],
+  targets: [],
+  currentTab: 'dashboard',
+  calendarView: 'month',
+  calendarAnchor: new Date(),
+};
+
+const STAGES = ['New', 'Contacted', 'Appointment booked', 'Showed', 'Joined'];
+const BRANCH_LABEL = { sb: 'Sungai Besi', bg: 'Bangsar', os: 'Old Klang Road' };
+const ROLE_TABS = {
+  owner: ['dashboard','pipeline','ratios','calendar','allLeads','org'],
+  md:    ['dashboard','pipeline','ratios','calendar','allLeads','org'],
+  abm:   ['dashboard','pipeline','ratios','calendar','allLeads','org'],
+  cm:    ['dashboard','pipeline','ratios','calendar','allLeads'],
+  sc:    ['dashboard','pipeline','calendar','allLeads'],
+};
+const TAB_LABELS = {
+  dashboard: 'Dashboard',
+  pipeline:  'Pipeline',
+  ratios:    'Ratios',
+  calendar:  'Calendar',
+  allLeads:  'All leads',
+  org:       'Org & Team',
+};
+
+// ============ API ============
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (state.token) headers.Authorization = 'Bearer ' + state.token;
+  const res = await fetch(path, Object.assign({}, opts, { headers }));
+  if (res.status === 401) {
+    logout();
+    throw new Error('unauthorized');
+  }
+  if (!res.ok) {
+    const msg = await res.text();
+    throw new Error(msg || ('HTTP ' + res.status));
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function loadAll() {
+  const [leads, appts, targets] = await Promise.all([
+    api('/api/leads'),
+    api('/api/appointments'),
+    api('/api/targets'),
+  ]);
+  state.leads = leads;
+  state.appointments = appts;
+  state.targets = targets;
+}
+
+// ============ Auth ============
+function logout() {
+  localStorage.removeItem('gymtrack.token');
+  localStorage.removeItem('gymtrack.user');
+  state.token = null; state.user = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+document.getElementById('logout-btn').onclick = logout;
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!r.ok) { err.textContent = 'Invalid credentials'; return; }
+    const data = await r.json();
+    state.token = data.token; state.user = data.user;
+    localStorage.setItem('gymtrack.token', data.token);
+    localStorage.setItem('gymtrack.user', JSON.stringify(data.user));
+    await bootApp();
+  } catch (e) {
+    err.textContent = 'Login failed';
+  }
+});
+
+// ============ Boot ============
+async function bootApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('who-text').textContent = `${state.user.username} · ${state.user.role.toUpperCase()} · ${state.user.branches.map(b => BRANCH_LABEL[b] || b).join(', ')}`;
+  renderTabs();
+  try {
+    await loadAll();
+  } catch (e) { console.error(e); }
+  render();
+}
+
+function renderTabs() {
+  const nav = document.getElementById('tab-nav');
+  const tabs = ROLE_TABS[state.user.role] || ROLE_TABS.sc;
+  if (!tabs.includes(state.currentTab)) state.currentTab = tabs[0];
+  nav.innerHTML = '';
+  for (const t of tabs) {
+    const b = document.createElement('button');
+    b.textContent = TAB_LABELS[t];
+    if (t === state.currentTab) b.className = 'active';
+    b.onclick = () => { state.currentTab = t; renderTabs(); render(); };
+    nav.appendChild(b);
+  }
+}
+
+// ============ Helpers ============
+function daysSince(iso) {
+  if (!iso) return 0;
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.floor(ms / 86400000);
+}
+function todayIso() { return new Date().toISOString().slice(0,10); }
+function monthKey(d=new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============ Render router ============
+function render() {
+  const v = document.getElementById('view');
+  v.innerHTML = '';
+  switch (state.currentTab) {
+    case 'dashboard': return renderDashboard(v);
+    case 'pipeline':  return renderPipeline(v);
+    case 'ratios':    return renderRatios(v);
+    case 'calendar':  return renderCalendar(v);
+    case 'allLeads':  return renderAllLeads(v);
+    case 'org':       return renderOrg(v);
+  }
+}
+
+// ---------- Dashboard ----------
+function renderDashboard(root) {
+  const mk = monthKey();
+  const thisMonthLeads = state.leads.filter(l => l.dateAdded && l.dateAdded.startsWith(mk));
+  const thisMonthAppts = state.appointments.filter(a => a.date && a.date.startsWith(mk));
+  const joined = state.leads.filter(l => l.stage === 'Joined' && l.dateAdded && l.dateAdded.startsWith(mk));
+
+  const target = state.targets.find(t => t.month === mk && state.user.branches.includes(t.branch));
+  const leadsTarget = target ? target.leadsTarget : 50;
+  const apptsTarget = target ? target.appointmentsTarget : 20;
+  const joinsTarget = target ? target.joinsTarget : 10;
+  const pct = (n,t) => t ? Math.min(100, Math.round(n/t*100)) : 0;
+
+  const inactive = state.leads.filter(l =>
+    l.stage !== 'Joined' && l.stage !== 'Lost' && daysSince(l.lastTouched) >= 7
+  );
+
+  const sourceCounts = {};
+  for (const l of state.leads) sourceCounts[l.source] = (sourceCounts[l.source] || 0) + 1;
+  const maxSrc = Math.max(1, ...Object.values(sourceCounts));
+
+  root.innerHTML = `
+    ${inactive.length ? `<div class="alert">⚠ ${inactive.length} lead${inactive.length>1?'s':''} not touched in 7+ days. Review under "All leads".</div>` : ''}
+    <div class="row">
+      <div class="col card"><div class="muted">Leads this month</div><div class="kpi">${thisMonthLeads.length}</div>
+        <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
+        <div class="muted">Target ${leadsTarget}</div></div>
+      <div class="col card"><div class="muted">Appointments this month</div><div class="kpi">${thisMonthAppts.length}</div>
+        <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthAppts.length, apptsTarget)}%"></div></div>
+        <div class="muted">Target ${apptsTarget}</div></div>
+      <div class="col card"><div class="muted">Joined this month</div><div class="kpi">${joined.length}</div>
+        <div class="progress" style="margin-top:6px"><div style="width:${pct(joined.length, joinsTarget)}%"></div></div>
+        <div class="muted">Target ${joinsTarget}</div></div>
+      <div class="col card"><div class="muted">Inactive leads (7d+)</div><div class="kpi">${inactive.length}</div>
+        <div class="muted">Needs follow-up</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Source breakdown</h2>
+      ${Object.entries(sourceCounts).map(([s,c]) => `
+        <div class="bar-row">
+          <span class="lbl">${escapeHtml(s)}</span>
+          <div class="bar"><div style="width:${c/maxSrc*100}%"></div></div>
+          <span class="val">${c}</span>
+        </div>
+      `).join('') || '<div class="muted">No leads yet</div>'}
+    </div>
+
+    <div class="card">
+      <h2>Today &amp; tomorrow</h2>
+      ${renderUpcomingTable()}
+    </div>
+  `;
+}
+
+function renderUpcomingTable() {
+  const today = todayIso();
+  const tom = new Date(); tom.setDate(tom.getDate()+1);
+  const tomIso = tom.toISOString().slice(0,10);
+  const list = state.appointments
+    .filter(a => a.date === today || a.date === tomIso)
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  if (!list.length) return '<div class="muted">Nothing scheduled.</div>';
+  return `<table><thead><tr><th>When</th><th>Lead</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>
+    ${list.map(a => `
+      <tr>
+        <td>${a.date} ${a.time}</td>
+        <td>${escapeHtml(a.leadName)}<br/><span class="muted">${escapeHtml(a.phone||'')}</span></td>
+        <td><span class="pill gray">${a.type}</span></td>
+        <td>${apptStatusPill(a.status)}</td>
+        <td>
+          <button class="btn small secondary" onclick="markAppt(${a.id},'showed')">Showed</button>
+          <button class="btn small secondary" onclick="markAppt(${a.id},'noshow')">No-show</button>
+        </td>
+      </tr>
+    `).join('')}
+  </tbody></table>`;
+}
+function apptStatusPill(s) {
+  if (s==='showed')  return '<span class="pill green">Showed</span>';
+  if (s==='noshow')  return '<span class="pill hot">No-show</span>';
+  return '<span class="pill gray">Scheduled</span>';
+}
+
+window.markAppt = async (id, status) => {
+  await api('/api/appointments/'+id, { method:'PUT', body: JSON.stringify({ status }) });
+  await loadAll(); render();
+};
+
+// ---------- Pipeline (drag & drop) ----------
+function renderPipeline(root) {
+  const cols = STAGES.map(stage => {
+    const leads = state.leads.filter(l => l.stage === stage);
+    return `
+      <div class="pipe-col" data-stage="${stage}">
+        <h3>${stage} <span class="count">${leads.length}</span></h3>
+        ${leads.map(l => `
+          <div class="lead-card" draggable="true" data-id="${l.id}">
+            <div class="lname">${escapeHtml(l.name)} <span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></div>
+            <div class="lmeta">${escapeHtml(l.phone||'')} · ${escapeHtml(l.source||'')}</div>
+            <div class="lmeta">Owner: ${escapeHtml(l.owner)} · ${BRANCH_LABEL[l.branch]||l.branch}</div>
+            <div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap">
+              <button class="btn small secondary" onclick="editLead(${l.id})">Edit</button>
+              <button class="btn small secondary" onclick="bookAppt(${l.id})">Book</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0">Pipeline</h2>
+      <button class="btn" onclick="newLead()">+ New lead</button>
+    </div>
+    <div class="pipeline">${cols}</div>
+  `;
+
+  // wire DnD
+  let draggingId = null;
+  root.querySelectorAll('.lead-card').forEach(el => {
+    el.addEventListener('dragstart', () => { draggingId = el.dataset.id; el.classList.add('dragging'); });
+    el.addEventListener('dragend',   () => { el.classList.remove('dragging'); draggingId = null; });
+  });
+  root.querySelectorAll('.pipe-col').forEach(col => {
+    col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('drop-over'); });
+    col.addEventListener('dragleave', () => col.classList.remove('drop-over'));
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault(); col.classList.remove('drop-over');
+      if (!draggingId) return;
+      const newStage = col.dataset.stage;
+      const lead = state.leads.find(l => String(l.id) === String(draggingId));
+      if (!lead || lead.stage === newStage) return;
+      await api('/api/leads/'+lead.id, { method:'PUT', body: JSON.stringify({ stage: newStage }) });
+      if (newStage === 'Appointment booked') bookAppt(lead.id);
+      await loadAll(); render();
+    });
+  });
+}
+
+// ---------- Ratios ----------
+function renderRatios(root) {
+  const counts = {};
+  for (const s of STAGES) counts[s] = state.leads.filter(l => l.stage === s).length;
+  const total = state.leads.length || 1;
+  const apptShowed = state.appointments.filter(a => a.status==='showed').length;
+  const apptTotal  = state.appointments.length;
+  const showRate = apptTotal ? Math.round(apptShowed/apptTotal*100) : 0;
+  const joined = counts['Joined'];
+  const closeRate = total ? Math.round(joined/total*100) : 0;
+
+  root.innerHTML = `
+    <div class="card">
+      <h2>Funnel</h2>
+      ${STAGES.map(s => `
+        <div class="bar-row">
+          <span class="lbl">${s}</span>
+          <div class="bar"><div style="width:${counts[s]/total*100}%"></div></div>
+          <span class="val">${counts[s]}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="row">
+      <div class="col card"><div class="muted">Show-up rate</div><div class="kpi">${showRate}%</div>
+        <div class="muted">${apptShowed} of ${apptTotal} appointments</div></div>
+      <div class="col card"><div class="muted">Close rate</div><div class="kpi">${closeRate}%</div>
+        <div class="muted">${joined} joined of ${total} leads</div></div>
+      <div class="col card"><div class="muted">Hot leads</div><div class="kpi">${state.leads.filter(l=>l.temperature==='Hot').length}</div></div>
+    </div>
+  `;
+}
+
+// ---------- Calendar ----------
+function renderCalendar(root) {
+  const v = state.calendarView;
+  root.innerHTML = `
+    <div class="card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="btn secondary" onclick="calNav(-1)">◀</button>
+      <strong id="cal-title"></strong>
+      <button class="btn secondary" onclick="calNav(1)">▶</button>
+      <span style="flex:1"></span>
+      <button class="btn ${v==='month'?'':'secondary'}" onclick="calView('month')">Month</button>
+      <button class="btn ${v==='week'?'':'secondary'}"  onclick="calView('week')">Week</button>
+      <button class="btn" onclick="newAppt()">+ New appointment</button>
+    </div>
+    <div id="cal-body" class="card"></div>
+  `;
+  if (v === 'month') drawMonth();
+  else drawWeek();
+}
+window.calNav = (delta) => {
+  const d = state.calendarAnchor;
+  if (state.calendarView === 'month') d.setMonth(d.getMonth() + delta);
+  else d.setDate(d.getDate() + 7 * delta);
+  render();
+};
+window.calView = (v) => { state.calendarView = v; render(); };
+
+function drawMonth() {
+  const d = state.calendarAnchor;
+  const y = d.getFullYear(), m = d.getMonth();
+  document.getElementById('cal-title').textContent =
+    d.toLocaleString(undefined,{month:'long', year:'numeric'});
+  const first = new Date(y, m, 1);
+  const start = new Date(first); start.setDate(1 - first.getDay());
+  const cells = [];
+  for (let i=0; i<42; i++) {
+    const dd = new Date(start); dd.setDate(start.getDate()+i);
+    cells.push(dd);
+  }
+  const today = todayIso();
+  const html = ['<div class="cal-grid">'];
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n => html.push(`<div class="cal-cell" style="min-height:auto;background:#f9fafb"><div class="d">${n}</div></div>`));
+  for (const c of cells) {
+    const iso = c.toISOString().slice(0,10);
+    const inMonth = c.getMonth() === m;
+    const evts = state.appointments.filter(a => a.date === iso);
+    html.push(`<div class="cal-cell ${iso===today?'today':''}" style="${inMonth?'':'opacity:.4'}">
+      <div class="d">${c.getDate()}</div>
+      ${evts.map(a => `<div class="cal-evt ${a.type}" onclick="editAppt(${a.id})">${a.time} ${escapeHtml(a.leadName)}</div>`).join('')}
+    </div>`);
+  }
+  html.push('</div>');
+  document.getElementById('cal-body').innerHTML = html.join('');
+}
+function drawWeek() {
+  const d = state.calendarAnchor;
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay());
+  document.getElementById('cal-title').textContent =
+    'Week of ' + start.toLocaleDateString();
+  const today = todayIso();
+  const html = ['<div class="cal-grid">'];
+  for (let i=0; i<7; i++) {
+    const c = new Date(start); c.setDate(start.getDate()+i);
+    const iso = c.toISOString().slice(0,10);
+    const evts = state.appointments
+      .filter(a => a.date === iso)
+      .sort((a,b)=>a.time.localeCompare(b.time));
+    html.push(`<div class="cal-cell ${iso===today?'today':''}" style="min-height:200px">
+      <div class="d">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]} ${c.getDate()}/${c.getMonth()+1}</div>
+      ${evts.map(a => `<div class="cal-evt ${a.type}" onclick="editAppt(${a.id})">${a.time}<br/>${escapeHtml(a.leadName)}</div>`).join('')}
+    </div>`);
+  }
+  html.push('</div>');
+  document.getElementById('cal-body').innerHTML = html.join('');
+}
+
+// ---------- All leads ----------
+function renderAllLeads(root) {
+  const inactive = state.leads.filter(l =>
+    l.stage !== 'Joined' && l.stage !== 'Lost' && daysSince(l.lastTouched) >= 7
+  ).map(l => l.id);
+
+  root.innerHTML = `
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">All leads (${state.leads.length})</h2>
+      <div>
+        <button class="btn secondary" onclick="exportCsv()">Export CSV</button>
+        <button class="btn" onclick="newLead()">+ New lead</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:auto">
+      <table>
+        <thead><tr>
+          <th>Name</th><th>Phone</th><th>Source</th><th>Stage</th><th>Temp</th>
+          <th>Owner</th><th>Branch</th><th>Added</th><th>Touched</th><th></th>
+        </tr></thead>
+        <tbody>
+        ${state.leads.map(l => `
+          <tr style="${inactive.includes(l.id)?'background:#fffbea':''}">
+            <td><strong>${escapeHtml(l.name)}</strong>${inactive.includes(l.id)?' <span class="pill amber">stale</span>':''}
+              <details class="audit"><summary>Audit (${l.auditTrail.length})</summary>
+                <div class="trail">${l.auditTrail.map(t => `${(t.at||'').slice(0,10)} · ${escapeHtml(t.by)} · ${escapeHtml(t.action)}`).join('<br/>') || '—'}</div>
+              </details>
+            </td>
+            <td>${escapeHtml(l.phone||'')}</td>
+            <td>${escapeHtml(l.source||'')}</td>
+            <td><span class="pill gray">${l.stage}</span></td>
+            <td><span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></td>
+            <td>${escapeHtml(l.owner)}</td>
+            <td>${BRANCH_LABEL[l.branch]||l.branch}</td>
+            <td>${l.dateAdded||''}</td>
+            <td>${l.lastTouched||''}</td>
+            <td>
+              <button class="btn small secondary" onclick="editLead(${l.id})">Edit</button>
+              <button class="btn small danger" onclick="deleteLead(${l.id})">×</button>
+            </td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+window.deleteLead = async (id) => {
+  if (!confirm('Delete this lead?')) return;
+  await api('/api/leads/'+id, { method: 'DELETE' });
+  await loadAll(); render();
+};
+
+window.exportCsv = () => {
+  const rows = [['Name','Phone','Source','Stage','Temperature','Owner','Branch','DateAdded','LastTouched','Notes']];
+  for (const l of state.leads) {
+    rows.push([l.name,l.phone,l.source,l.stage,l.temperature,l.owner,l.branch,l.dateAdded,l.lastTouched,(l.notes||'').replace(/\n/g,' ')]);
+  }
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gymtrack-leads-' + todayIso() + '.csv';
+  a.click();
+};
+
+// ---------- Org & Team ----------
+function renderOrg(root) {
+  const byBranch = {};
+  for (const b of state.user.branches) byBranch[b] = { leads:0, joined:0, appts:0, showed:0 };
+  for (const l of state.leads) {
+    if (!byBranch[l.branch]) continue;
+    byBranch[l.branch].leads++;
+    if (l.stage === 'Joined') byBranch[l.branch].joined++;
+  }
+  for (const a of state.appointments) {
+    if (!byBranch[a.branch]) continue;
+    byBranch[a.branch].appts++;
+    if (a.status === 'showed') byBranch[a.branch].showed++;
+  }
+  const mk = monthKey();
+
+  root.innerHTML = `
+    <div class="card">
+      <h2>Branch performance</h2>
+      <table>
+        <thead><tr><th>Branch</th><th>Leads</th><th>Appts</th><th>Showed</th><th>Joined</th><th>Close %</th></tr></thead>
+        <tbody>
+          ${Object.entries(byBranch).map(([b,s])=>`
+            <tr><td>${BRANCH_LABEL[b]||b}</td>
+              <td>${s.leads}</td><td>${s.appts}</td><td>${s.showed}</td>
+              <td>${s.joined}</td>
+              <td>${s.leads? Math.round(s.joined/s.leads*100):0}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Monthly targets · ${mk}</h2>
+      ${state.user.branches.map(b => {
+        const t = state.targets.find(x => x.branch===b && x.month===mk) || { leadsTarget:0, appointmentsTarget:0, joinsTarget:0 };
+        return `
+          <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px; margin-bottom:8px">
+            <strong>${BRANCH_LABEL[b]||b}</strong>
+            <div class="row" style="margin-top:6px">
+              <div class="col"><label class="muted">Leads</label>
+                <input type="number" value="${t.leadsTarget}" id="t-${b}-leads" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
+              <div class="col"><label class="muted">Appointments</label>
+                <input type="number" value="${t.appointmentsTarget}" id="t-${b}-appts" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
+              <div class="col"><label class="muted">Joins</label>
+                <input type="number" value="${t.joinsTarget}" id="t-${b}-joins" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
+              <div class="col" style="display:flex;align-items:flex-end">
+                <button class="btn" onclick="saveTarget('${b}','${mk}')">Save</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window.saveTarget = async (branch, month) => {
+  const leadsTarget        = Number(document.getElementById(`t-${branch}-leads`).value) || 0;
+  const appointmentsTarget = Number(document.getElementById(`t-${branch}-appts`).value) || 0;
+  const joinsTarget        = Number(document.getElementById(`t-${branch}-joins`).value) || 0;
+  await api('/api/targets', { method:'PUT', body: JSON.stringify({ branch, month, leadsTarget, appointmentsTarget, joinsTarget })});
+  await loadAll(); render();
+};
+
+// ---------- Modals: lead & appointment ----------
+function modal(html) {
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.innerHTML = `<div class="modal">${html}</div>`;
+  back.addEventListener('click', e => { if (e.target === back) back.remove(); });
+  document.body.appendChild(back);
+  return back;
+}
+
+window.newLead = () => editLead(null);
+
+window.editLead = (id) => {
+  const l = id ? state.leads.find(x => x.id === id) : null;
+  const m = modal(`
+    <h3>${l ? 'Edit lead' : 'New lead'}</h3>
+    <label>Name</label><input id="ml-name" value="${escapeHtml(l?.name||'')}">
+    <label>Phone</label><input id="ml-phone" value="${escapeHtml(l?.phone||'')}">
+    <label>Source</label>
+    <select id="ml-source">
+      ${['Walk-in','Referral','Social media','Phone call','Event','Other']
+        .map(s => `<option ${l?.source===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+    <label>Stage</label>
+    <select id="ml-stage">${STAGES.map(s=>`<option ${l?.stage===s?'selected':''}>${s}</option>`).join('')}</select>
+    <label>Temperature</label>
+    <select id="ml-temp">${['Hot','Cold'].map(s=>`<option ${l?.temperature===s?'selected':''}>${s}</option>`).join('')}</select>
+    <label>Branch</label>
+    <select id="ml-branch">${state.user.branches.map(b=>`<option value="${b}" ${l?.branch===b?'selected':''}>${BRANCH_LABEL[b]||b}</option>`).join('')}</select>
+    <label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">
+    <label>Notes</label><textarea id="ml-notes" rows="3">${escapeHtml(l?.notes||'')}</textarea>
+    <div class="actions">
+      <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
+      <button class="btn" id="ml-save">Save</button>
+    </div>
+  `);
+  m.querySelector('#ml-save').onclick = async () => {
+    const body = {
+      name:        m.querySelector('#ml-name').value.trim(),
+      phone:       m.querySelector('#ml-phone').value.trim(),
+      source:      m.querySelector('#ml-source').value,
+      stage:       m.querySelector('#ml-stage').value,
+      temperature: m.querySelector('#ml-temp').value,
+      branch:      m.querySelector('#ml-branch').value,
+      owner:       m.querySelector('#ml-owner').value.trim(),
+      notes:       m.querySelector('#ml-notes').value,
+    };
+    if (l) await api('/api/leads/'+l.id, { method:'PUT', body: JSON.stringify(body) });
+    else   await api('/api/leads',       { method:'POST', body: JSON.stringify(body) });
+    m.remove();
+    await loadAll(); render();
+  };
+};
+
+window.bookAppt = (leadId) => {
+  const l = state.leads.find(x => x.id === leadId);
+  newAppt(l);
+};
+
+window.newAppt = (lead) => editAppt(null, lead);
+
+window.editAppt = (id, prefillLead) => {
+  const a = id ? state.appointments.find(x => x.id === id) : null;
+  const seedName  = a?.leadName  ?? prefillLead?.name  ?? '';
+  const seedPhone = a?.phone     ?? prefillLead?.phone ?? '';
+  const seedBranch= a?.branch    ?? prefillLead?.branch?? state.user.branches[0];
+  const m = modal(`
+    <h3>${a ? 'Edit appointment' : 'New appointment'}</h3>
+    <label>Lead name</label><input id="ma-name" value="${escapeHtml(seedName)}">
+    <label>Phone</label><input id="ma-phone" value="${escapeHtml(seedPhone)}">
+    <label>Date</label><input id="ma-date" type="date" value="${a?.date||todayIso()}">
+    <label>Time</label><input id="ma-time" type="time" value="${a?.time||'10:00'}">
+    <label>Type</label>
+    <select id="ma-type">${['tour','followup','call'].map(s=>`<option ${a?.type===s?'selected':''}>${s}</option>`).join('')}</select>
+    <label>Reminder (days before)</label>
+    <select id="ma-rem">${[1,2,3,7].map(s=>`<option value="${s}" ${a?.reminderDays===s?'selected':''}>${s} day${s>1?'s':''}</option>`).join('')}</select>
+    <label>Status</label>
+    <select id="ma-status">${['scheduled','showed','noshow'].map(s=>`<option ${a?.status===s?'selected':''}>${s}</option>`).join('')}</select>
+    <label>Branch</label>
+    <select id="ma-branch">${state.user.branches.map(b=>`<option value="${b}" ${seedBranch===b?'selected':''}>${BRANCH_LABEL[b]||b}</option>`).join('')}</select>
+    <label>Notes</label><textarea id="ma-notes" rows="2">${escapeHtml(a?.notes||'')}</textarea>
+    <label><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
+    <div class="actions">
+      ${a ? `<button class="btn danger" id="ma-del">Delete</button>` : ''}
+      <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
+      <button class="btn" id="ma-save">Save</button>
+    </div>
+  `);
+  if (a) m.querySelector('#ma-del').onclick = async () => {
+    if (!confirm('Delete appointment?')) return;
+    await api('/api/appointments/'+a.id, { method:'DELETE' });
+    m.remove(); await loadAll(); render();
+  };
+  m.querySelector('#ma-save').onclick = async () => {
+    const body = {
+      leadName:     m.querySelector('#ma-name').value.trim(),
+      phone:        m.querySelector('#ma-phone').value.trim(),
+      date:         m.querySelector('#ma-date').value,
+      time:         m.querySelector('#ma-time').value,
+      type:         m.querySelector('#ma-type').value,
+      reminderDays: Number(m.querySelector('#ma-rem').value),
+      status:       m.querySelector('#ma-status').value,
+      branch:       m.querySelector('#ma-branch').value,
+      notes:        m.querySelector('#ma-notes').value,
+    };
+    const sendWa = m.querySelector('#ma-whatsapp').checked;
+    if (a) await api('/api/appointments/'+a.id, { method:'PUT', body: JSON.stringify(body)});
+    else   await api('/api/appointments',       { method:'POST', body: JSON.stringify(body)});
+    m.remove();
+    if (sendWa && body.phone) {
+      const text = encodeURIComponent(
+        `Hi ${body.leadName}, this is GymTrack confirming your ${body.type} on ${body.date} at ${body.time}. See you then!`
+      );
+      const phone = body.phone.replace(/\D/g,'');
+      window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+    }
+    await loadAll(); render();
+  };
+};
+
+// ============ Init ============
+if (state.token && state.user) {
+  bootApp();
+}
+</script>
+</body>
+</html>
