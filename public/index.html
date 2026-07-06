@@ -17,19 +17,26 @@
   }
   .login-card {
     position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
-    background: #fff; padding: 32px; width: 340px; border-radius: 8px;
+    background: #fff; padding: 32px; width: 360px; border-radius: 8px;
     box-shadow: 0 12px 40px rgba(0,0,0,.18);
   }
   .login-card h1 { margin: 0 0 4px; font-size: 22px; }
   .login-card p.sub { margin: 0 0 18px; color: #6b7280; font-size: 13px; }
   .login-card label { display: block; margin: 10px 0 4px; font-size: 12px; color: #374151; }
   .login-card input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; }
-  .login-card button {
+  .login-card button.login-btn {
     width: 100%; margin-top: 16px; padding: 10px 12px;
     background: #111827; color: #fff; border: 0; border-radius: 6px; font-weight: 600;
   }
   .login-card .err { color: #b91c1c; font-size: 12px; margin-top: 8px; min-height: 16px; }
-  .login-card .hint { color: #6b7280; font-size: 11px; margin-top: 12px; line-height: 1.5; }
+  .quick-logins { margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
+  .quick-logins .ql-label { font-size: 11px; color: #6b7280; margin-bottom: 8px; }
+  .quick-logins .ql-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .quick-logins .ql-btns button {
+    padding: 6px 12px; border: 1px solid #d1d5db; background: #f9fafb;
+    border-radius: 6px; font-size: 12px; font-weight: 500; color: #374151;
+  }
+  .quick-logins .ql-btns button:hover { background: #e5e7eb; }
 
   /* ---- App shell ---- */
   header.topbar {
@@ -58,6 +65,7 @@
   .pill.cold { background: #dbeafe; color: #1d4ed8; }
   .pill.green { background: #dcfce7; color: #166534; }
   .pill.amber { background: #fef3c7; color: #92400e; }
+  .pill.red { background: #fee2e2; color: #b91c1c; }
   .pill.gray { background: #e5e7eb; color: #374151; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -70,7 +78,6 @@
   .btn.small { padding: 4px 8px; font-size: 12px; }
   .btn.danger { background: #b91c1c; }
 
-  /* progress */
   .progress { background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden; }
   .progress > div { background: #16a34a; height: 100%; }
 
@@ -107,9 +114,9 @@
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
   .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
-  .bar-row .lbl { flex: 0 0 110px; }
+  .bar-row .lbl { flex: 0 0 130px; }
   .bar-row .bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
-  .bar-row .bar > div { height: 100%; background: #2563eb; }
+  .bar-row .bar > div { height: 100%; }
   .bar-row .val { flex: 0 0 50px; text-align: right; color: #374151; }
 
   .alert {
@@ -120,6 +127,26 @@
   details.audit { margin-top: 4px; }
   details.audit summary { cursor: pointer; font-size: 11px; color: #6b7280; }
   details.audit .trail { font-size: 11px; color: #374151; padding-left: 12px; margin-top: 4px; }
+
+  /* ratios */
+  .ratio-card { text-align: center; padding: 16px; }
+  .ratio-card .ratio-val { font-size: 28px; font-weight: 700; }
+  .ratio-card .ratio-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .ratio-card .ratio-bench { font-size: 11px; color: #9ca3af; }
+  .ratio-card.status-green { border-color: #16a34a; }
+  .ratio-card.status-green .ratio-val { color: #16a34a; }
+  .ratio-card.status-amber { border-color: #d97706; }
+  .ratio-card.status-amber .ratio-val { color: #d97706; }
+  .ratio-card.status-red { border-color: #dc2626; }
+  .ratio-card.status-red .ratio-val { color: #dc2626; }
+
+  .bench-chart { margin-top: 12px; }
+  .bench-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .bench-row .bench-lbl { flex: 0 0 130px; font-size: 12px; }
+  .bench-row .bench-bars { flex: 1; position: relative; height: 24px; }
+  .bench-row .bench-bars .you-bar { height: 10px; border-radius: 4px; position: absolute; top: 0; }
+  .bench-row .bench-bars .af-bar { height: 10px; border-radius: 4px; position: absolute; top: 13px; background: #d1d5db; }
+  .bench-row .bench-vals { flex: 0 0 90px; font-size: 11px; text-align: right; }
 </style>
 </head>
 <body>
@@ -128,18 +155,24 @@
 <div id="login-screen">
   <div class="login-card">
     <h1>GymTrack</h1>
-    <p class="sub">Sign in to continue</p>
+    <p class="sub">AF Trillium &middot; Sungai Besi</p>
     <form id="login-form">
       <label>Username</label>
       <input id="login-username" autocomplete="username" required />
       <label>Password</label>
       <input id="login-password" type="password" autocomplete="current-password" required />
-      <button type="submit">Sign in</button>
+      <button type="submit" class="login-btn">Sign in</button>
       <div class="err" id="login-error"></div>
     </form>
-    <div class="hint">
-      Demo: <b>sumugan / sc123</b><br/>
-      Owner: <b>eden / eden123</b>
+    <div class="quick-logins">
+      <div class="ql-label">Quick login</div>
+      <div class="ql-btns">
+        <button onclick="quickLogin('fauzi','fauzi123')">Fauzi (ABM)</button>
+        <button onclick="quickLogin('shamin','shamin123')">Shamin (CM)</button>
+        <button onclick="quickLogin('sumugan','sc123')">Sumugan (SC)</button>
+        <button onclick="quickLogin('fatihah','fat123')">Fatihah (SC)</button>
+        <button onclick="quickLogin('faez','faez123')">Faez (SC)</button>
+      </div>
     </div>
   </div>
 </div>
@@ -165,19 +198,22 @@ const state = {
   leads: [],
   appointments: [],
   targets: [],
+  ratios: [],
+  users: [],
   currentTab: 'dashboard',
   calendarView: 'month',
   calendarAnchor: new Date(),
+  ratioView: 'combined',
+  ratioPeriodType: 'daily',
+  ratioMonth: new Date().toISOString().slice(0,7),
 };
 
 const STAGES = ['New', 'Contacted', 'Appointment booked', 'Showed', 'Joined'];
 const BRANCH_LABEL = { sb: 'Sungai Besi', bg: 'Bangsar', os: 'Old Klang Road' };
 const ROLE_TABS = {
-  owner: ['dashboard','pipeline','ratios','calendar','allLeads','org'],
-  md:    ['dashboard','pipeline','ratios','calendar','allLeads','org'],
   abm:   ['dashboard','pipeline','ratios','calendar','allLeads','org'],
-  cm:    ['dashboard','pipeline','ratios','calendar','allLeads'],
-  sc:    ['dashboard','pipeline','calendar','allLeads'],
+  cm:    ['dashboard','pipeline','ratios','calendar','allLeads','org'],
+  sc:    ['dashboard','pipeline','ratios','calendar','allLeads'],
 };
 const TAB_LABELS = {
   dashboard: 'Dashboard',
@@ -188,32 +224,38 @@ const TAB_LABELS = {
   org:       'Org & Team',
 };
 
+const AF_BENCHMARKS = {
+  callPickedUp: 0.16,
+  callToAppt:   0.15,
+  apptToShow:   0.40,
+  showToClose:  0.50,
+};
+
 // ============ API ============
 async function api(path, opts = {}) {
   const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
   if (state.token) headers.Authorization = 'Bearer ' + state.token;
   const res = await fetch(path, Object.assign({}, opts, { headers }));
-  if (res.status === 401) {
-    logout();
-    throw new Error('unauthorized');
-  }
-  if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(msg || ('HTTP ' + res.status));
-  }
+  if (res.status === 401) { logout(); throw new Error('unauthorized'); }
+  if (!res.ok) { const msg = await res.text(); throw new Error(msg || ('HTTP ' + res.status)); }
   if (res.status === 204) return null;
   return res.json();
 }
 
 async function loadAll() {
-  const [leads, appts, targets] = await Promise.all([
+  const promises = [
     api('/api/leads'),
     api('/api/appointments'),
     api('/api/targets'),
-  ]);
+    api('/api/ratios?period_type=' + state.ratioPeriodType + '&month=' + state.ratioMonth),
+  ];
+  if (state.user.role !== 'sc') promises.push(api('/api/users'));
+  const [leads, appts, targets, ratios, users] = await Promise.all(promises);
   state.leads = leads;
   state.appointments = appts;
   state.targets = targets;
+  state.ratios = ratios;
+  if (users) state.users = users;
 }
 
 // ============ Auth ============
@@ -226,6 +268,12 @@ function logout() {
 }
 
 document.getElementById('logout-btn').onclick = logout;
+
+window.quickLogin = (u, p) => {
+  document.getElementById('login-username').value = u;
+  document.getElementById('login-password').value = p;
+  document.getElementById('login-form').dispatchEvent(new Event('submit', { cancelable: true }));
+};
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -245,20 +293,17 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     localStorage.setItem('gymtrack.token', data.token);
     localStorage.setItem('gymtrack.user', JSON.stringify(data.user));
     await bootApp();
-  } catch (e) {
-    err.textContent = 'Login failed';
-  }
+  } catch (e) { err.textContent = 'Login failed'; }
 });
 
 // ============ Boot ============
 async function bootApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('who-text').textContent = `${state.user.username} · ${state.user.role.toUpperCase()} · ${state.user.branches.map(b => BRANCH_LABEL[b] || b).join(', ')}`;
+  const dn = state.user.displayName || state.user.username;
+  document.getElementById('who-text').textContent = `${dn} · ${state.user.role.toUpperCase()} · ${state.user.branches.map(b => BRANCH_LABEL[b] || b).join(', ')}`;
   renderTabs();
-  try {
-    await loadAll();
-  } catch (e) { console.error(e); }
+  try { await loadAll(); } catch (e) { console.error(e); }
   render();
 }
 
@@ -277,18 +322,10 @@ function renderTabs() {
 }
 
 // ============ Helpers ============
-function daysSince(iso) {
-  if (!iso) return 0;
-  const ms = Date.now() - new Date(iso).getTime();
-  return Math.floor(ms / 86400000);
-}
+function daysSince(iso) { if (!iso) return 0; return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
 function todayIso() { return new Date().toISOString().slice(0,10); }
-function monthKey(d=new Date()) {
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-}
-function escapeHtml(s) {
-  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function monthKey(d=new Date()) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ============ Render router ============
 function render() {
@@ -311,10 +348,8 @@ function renderDashboard(root) {
   const thisMonthAppts = state.appointments.filter(a => a.date && a.date.startsWith(mk));
   const joined = state.leads.filter(l => l.stage === 'Joined' && l.dateAdded && l.dateAdded.startsWith(mk));
 
-  const target = state.targets.find(t => t.month === mk && state.user.branches.includes(t.branch));
-  const leadsTarget = target ? target.leadsTarget : 50;
-  const apptsTarget = target ? target.appointmentsTarget : 20;
-  const joinsTarget = target ? target.joinsTarget : 10;
+  const myTarget = state.targets.find(t => t.owner === state.user.username && t.month === mk);
+  const leadsTarget = myTarget ? myTarget.leadsTarget : 20;
   const pct = (n,t) => t ? Math.min(100, Math.round(n/t*100)) : 0;
 
   const inactive = state.leads.filter(l =>
@@ -331,27 +366,21 @@ function renderDashboard(root) {
       <div class="col card"><div class="muted">Leads this month</div><div class="kpi">${thisMonthLeads.length}</div>
         <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
         <div class="muted">Target ${leadsTarget}</div></div>
-      <div class="col card"><div class="muted">Appointments this month</div><div class="kpi">${thisMonthAppts.length}</div>
-        <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthAppts.length, apptsTarget)}%"></div></div>
-        <div class="muted">Target ${apptsTarget}</div></div>
-      <div class="col card"><div class="muted">Joined this month</div><div class="kpi">${joined.length}</div>
-        <div class="progress" style="margin-top:6px"><div style="width:${pct(joined.length, joinsTarget)}%"></div></div>
-        <div class="muted">Target ${joinsTarget}</div></div>
+      <div class="col card"><div class="muted">Appointments this month</div><div class="kpi">${thisMonthAppts.length}</div></div>
+      <div class="col card"><div class="muted">Joined this month</div><div class="kpi">${joined.length}</div></div>
       <div class="col card"><div class="muted">Inactive leads (7d+)</div><div class="kpi">${inactive.length}</div>
         <div class="muted">Needs follow-up</div></div>
     </div>
-
     <div class="card">
       <h2>Source breakdown</h2>
       ${Object.entries(sourceCounts).map(([s,c]) => `
         <div class="bar-row">
           <span class="lbl">${escapeHtml(s)}</span>
-          <div class="bar"><div style="width:${c/maxSrc*100}%"></div></div>
+          <div class="bar"><div style="width:${c/maxSrc*100}%; background:#2563eb"></div></div>
           <span class="val">${c}</span>
         </div>
       `).join('') || '<div class="muted">No leads yet</div>'}
     </div>
-
     <div class="card">
       <h2>Today &amp; tomorrow</h2>
       ${renderUpcomingTable()}
@@ -384,7 +413,7 @@ function renderUpcomingTable() {
 }
 function apptStatusPill(s) {
   if (s==='showed')  return '<span class="pill green">Showed</span>';
-  if (s==='noshow')  return '<span class="pill hot">No-show</span>';
+  if (s==='noshow')  return '<span class="pill red">No-show</span>';
   return '<span class="pill gray">Scheduled</span>';
 }
 
@@ -404,7 +433,7 @@ function renderPipeline(root) {
           <div class="lead-card" draggable="true" data-id="${l.id}">
             <div class="lname">${escapeHtml(l.name)} <span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></div>
             <div class="lmeta">${escapeHtml(l.phone||'')} · ${escapeHtml(l.source||'')}</div>
-            <div class="lmeta">Owner: ${escapeHtml(l.owner)} · ${BRANCH_LABEL[l.branch]||l.branch}</div>
+            <div class="lmeta">Owner: ${escapeHtml(l.owner)}</div>
             <div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap">
               <button class="btn small secondary" onclick="editLead(${l.id})">Edit</button>
               <button class="btn small secondary" onclick="bookAppt(${l.id})">Book</button>
@@ -422,7 +451,6 @@ function renderPipeline(root) {
     <div class="pipeline">${cols}</div>
   `;
 
-  // wire DnD
   let draggingId = null;
   root.querySelectorAll('.lead-card').forEach(el => {
     el.addEventListener('dragstart', () => { draggingId = el.dataset.id; el.classList.add('dragging'); });
@@ -446,35 +474,180 @@ function renderPipeline(root) {
 
 // ---------- Ratios ----------
 function renderRatios(root) {
-  const counts = {};
-  for (const s of STAGES) counts[s] = state.leads.filter(l => l.stage === s).length;
-  const total = state.leads.length || 1;
-  const apptShowed = state.appointments.filter(a => a.status==='showed').length;
-  const apptTotal  = state.appointments.length;
-  const showRate = apptTotal ? Math.round(apptShowed/apptTotal*100) : 0;
-  const joined = counts['Joined'];
-  const closeRate = total ? Math.round(joined/total*100) : 0;
+  const role = state.user.role;
+  const scs = state.users.filter(u => u.role === 'sc') || [];
+  const canViewOthers = role === 'abm' || role === 'cm';
+
+  let viewSelector = '';
+  if (canViewOthers) {
+    const opts = ['<option value="combined">All SCs (Combined)</option>'];
+    for (const sc of scs) {
+      opts.push(`<option value="${sc.username}" ${state.ratioView === sc.username ? 'selected':''}>${escapeHtml(sc.displayName || sc.username)}</option>`);
+    }
+    viewSelector = `<select onchange="setRatioView(this.value)">${opts.join('')}</select>`;
+  }
+
+  const periodOpts = ['daily','weekly','monthly'].map(p =>
+    `<option value="${p}" ${state.ratioPeriodType===p?'selected':''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`
+  ).join('');
 
   root.innerHTML = `
-    <div class="card">
-      <h2>Funnel</h2>
-      ${STAGES.map(s => `
-        <div class="bar-row">
-          <span class="lbl">${s}</span>
-          <div class="bar"><div style="width:${counts[s]/total*100}%"></div></div>
-          <span class="val">${counts[s]}</span>
+    <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0">Ratios</h2>
+      ${viewSelector}
+      <select onchange="setRatioPeriod(this.value)">${periodOpts}</select>
+      <input type="month" value="${state.ratioMonth}" onchange="setRatioMonth(this.value)" style="padding:6px;border:1px solid #d1d5db;border-radius:6px" />
+      <span style="flex:1"></span>
+      <button class="btn" onclick="openRatioInput()">+ Log numbers</button>
+    </div>
+    <div id="ratio-body"></div>
+  `;
+  renderRatioBody();
+}
+
+window.setRatioView = async (v) => { state.ratioView = v; renderRatioBody(); };
+window.setRatioPeriod = async (v) => { state.ratioPeriodType = v; await reloadRatios(); render(); };
+window.setRatioMonth = async (v) => { state.ratioMonth = v; await reloadRatios(); render(); };
+
+async function reloadRatios() {
+  state.ratios = await api('/api/ratios?period_type=' + state.ratioPeriodType + '&month=' + state.ratioMonth);
+}
+
+function renderRatioBody() {
+  const body = document.getElementById('ratio-body');
+  if (!body) return;
+
+  let data = state.ratios;
+  if (state.ratioView !== 'combined' && state.user.role !== 'sc') {
+    data = data.filter(r => r.owner === state.ratioView);
+  }
+
+  const totals = { callsPlaced: 0, pickedUp: 0, apptsSet: 0, showedUp: 0, closed: 0 };
+  for (const r of data) {
+    totals.callsPlaced += r.callsPlaced;
+    totals.pickedUp += r.pickedUp;
+    totals.apptsSet += r.apptsSet;
+    totals.showedUp += r.showedUp;
+    totals.closed += r.closed;
+  }
+
+  const ratios = {
+    callPickedUp: totals.callsPlaced ? totals.pickedUp / totals.callsPlaced : 0,
+    callToAppt:   totals.pickedUp ? totals.apptsSet / totals.pickedUp : 0,
+    apptToShow:   totals.apptsSet ? totals.showedUp / totals.apptsSet : 0,
+    showToClose:  totals.showedUp ? totals.closed / totals.showedUp : 0,
+  };
+
+  function statusClass(val, bench) {
+    if (val >= bench) return 'status-green';
+    if (val >= bench * 0.7) return 'status-amber';
+    return 'status-red';
+  }
+
+  const cards = [
+    { label: 'Call picked up %', val: ratios.callPickedUp, bench: AF_BENCHMARKS.callPickedUp },
+    { label: 'Call to appt %', val: ratios.callToAppt, bench: AF_BENCHMARKS.callToAppt },
+    { label: 'Appt to show %', val: ratios.apptToShow, bench: AF_BENCHMARKS.apptToShow },
+    { label: 'Show to close %', val: ratios.showToClose, bench: AF_BENCHMARKS.showToClose },
+  ];
+
+  const hasData = totals.callsPlaced > 0;
+
+  body.innerHTML = `
+    <div class="row" style="margin-bottom:16px">
+      ${cards.map(c => `
+        <div class="col card ratio-card ${hasData ? statusClass(c.val, c.bench) : ''}">
+          <div class="ratio-val">${hasData ? Math.round(c.val*100)+'%' : '—'}</div>
+          <div class="ratio-label">${c.label}</div>
+          <div class="ratio-bench">AF Benchmark: ${Math.round(c.bench*100)}%</div>
         </div>
       `).join('')}
     </div>
-    <div class="row">
-      <div class="col card"><div class="muted">Show-up rate</div><div class="kpi">${showRate}%</div>
-        <div class="muted">${apptShowed} of ${apptTotal} appointments</div></div>
-      <div class="col card"><div class="muted">Close rate</div><div class="kpi">${closeRate}%</div>
-        <div class="muted">${joined} joined of ${total} leads</div></div>
-      <div class="col card"><div class="muted">Hot leads</div><div class="kpi">${state.leads.filter(l=>l.temperature==='Hot').length}</div></div>
+
+    ${hasData ? `
+    <div class="card">
+      <h2>You vs AF Benchmarks</h2>
+      <div class="bench-chart">
+        ${cards.map(c => {
+          const youPct = Math.min(100, Math.round(c.val * 100));
+          const afPct = Math.round(c.bench * 100);
+          const maxPct = Math.max(youPct, afPct, 1);
+          const youW = youPct / maxPct * 100;
+          const afW = afPct / maxPct * 100;
+          const youColor = statusClass(c.val, c.bench) === 'status-green' ? '#16a34a' : statusClass(c.val, c.bench) === 'status-amber' ? '#d97706' : '#dc2626';
+          return `
+            <div class="bench-row">
+              <div class="bench-lbl">${c.label}</div>
+              <div class="bench-bars">
+                <div class="you-bar" style="width:${youW}%;background:${youColor}"></div>
+                <div class="af-bar" style="width:${afW}%"></div>
+              </div>
+              <div class="bench-vals">${youPct}% / ${afPct}%</div>
+            </div>
+          `;
+        }).join('')}
+        <div style="font-size:11px;color:#6b7280;margin-top:8px">Top bar = You &middot; Bottom bar = AF Benchmark</div>
+      </div>
+    </div>
+    ` : '<div class="card"><div class="muted">No ratio data for this period. Use "+ Log numbers" to enter your daily/weekly/monthly activity.</div></div>'}
+
+    <div class="card" style="padding:0;overflow:auto">
+      <table>
+        <thead><tr><th>Period</th><th>Owner</th><th>Calls</th><th>Picked up</th><th>Appts set</th><th>Showed</th><th>Closed</th></tr></thead>
+        <tbody>
+          ${data.length ? data.map(r => `
+            <tr>
+              <td>${r.period}</td><td>${escapeHtml(r.owner)}</td>
+              <td>${r.callsPlaced}</td><td>${r.pickedUp}</td>
+              <td>${r.apptsSet}</td><td>${r.showedUp}</td><td>${r.closed}</td>
+            </tr>
+          `).join('') : '<tr><td colspan="7" class="muted">No data</td></tr>'}
+        </tbody>
+      </table>
     </div>
   `;
 }
+
+window.openRatioInput = () => {
+  const today = todayIso();
+  const m = modal(`
+    <h3>Log ratio numbers</h3>
+    <label>Owner</label>
+    <input id="ri-owner" value="${state.user.username}" ${state.user.role==='sc'?'readonly':''}>
+    <label>Period (date for daily, e.g. 2026-07-06)</label>
+    <input id="ri-period" value="${today}">
+    <label>Period type</label>
+    <select id="ri-ptype">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+    <label>Calls placed</label><input id="ri-calls" type="number" value="0">
+    <label>Picked up</label><input id="ri-picked" type="number" value="0">
+    <label>Appointments set</label><input id="ri-appts" type="number" value="0">
+    <label>Showed up</label><input id="ri-showed" type="number" value="0">
+    <label>Closed</label><input id="ri-closed" type="number" value="0">
+    <div class="actions">
+      <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
+      <button class="btn" id="ri-save">Save</button>
+    </div>
+  `);
+  m.querySelector('#ri-save').onclick = async () => {
+    const body = {
+      owner: m.querySelector('#ri-owner').value.trim(),
+      period: m.querySelector('#ri-period').value.trim(),
+      periodType: m.querySelector('#ri-ptype').value,
+      callsPlaced: Number(m.querySelector('#ri-calls').value) || 0,
+      pickedUp: Number(m.querySelector('#ri-picked').value) || 0,
+      apptsSet: Number(m.querySelector('#ri-appts').value) || 0,
+      showedUp: Number(m.querySelector('#ri-showed').value) || 0,
+      closed: Number(m.querySelector('#ri-closed').value) || 0,
+    };
+    await api('/api/ratios', { method:'PUT', body: JSON.stringify(body) });
+    m.remove();
+    await reloadRatios(); renderRatioBody();
+  };
+};
 
 // ---------- Calendar ----------
 function renderCalendar(root) {
@@ -510,10 +683,7 @@ function drawMonth() {
   const first = new Date(y, m, 1);
   const start = new Date(first); start.setDate(1 - first.getDay());
   const cells = [];
-  for (let i=0; i<42; i++) {
-    const dd = new Date(start); dd.setDate(start.getDate()+i);
-    cells.push(dd);
-  }
+  for (let i=0; i<42; i++) { const dd = new Date(start); dd.setDate(start.getDate()+i); cells.push(dd); }
   const today = todayIso();
   const html = ['<div class="cal-grid">'];
   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n => html.push(`<div class="cal-cell" style="min-height:auto;background:#f9fafb"><div class="d">${n}</div></div>`));
@@ -532,16 +702,13 @@ function drawMonth() {
 function drawWeek() {
   const d = state.calendarAnchor;
   const start = new Date(d); start.setDate(d.getDate() - d.getDay());
-  document.getElementById('cal-title').textContent =
-    'Week of ' + start.toLocaleDateString();
+  document.getElementById('cal-title').textContent = 'Week of ' + start.toLocaleDateString();
   const today = todayIso();
   const html = ['<div class="cal-grid">'];
   for (let i=0; i<7; i++) {
     const c = new Date(start); c.setDate(start.getDate()+i);
     const iso = c.toISOString().slice(0,10);
-    const evts = state.appointments
-      .filter(a => a.date === iso)
-      .sort((a,b)=>a.time.localeCompare(b.time));
+    const evts = state.appointments.filter(a => a.date === iso).sort((a,b)=>a.time.localeCompare(b.time));
     html.push(`<div class="cal-cell ${iso===today?'today':''}" style="min-height:200px">
       <div class="d">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]} ${c.getDate()}/${c.getMonth()+1}</div>
       ${evts.map(a => `<div class="cal-evt ${a.type}" onclick="editAppt(${a.id})">${a.time}<br/>${escapeHtml(a.leadName)}</div>`).join('')}
@@ -556,6 +723,7 @@ function renderAllLeads(root) {
   const inactive = state.leads.filter(l =>
     l.stage !== 'Joined' && l.stage !== 'Lost' && daysSince(l.lastTouched) >= 7
   ).map(l => l.id);
+  const canDelete = state.user.role !== 'sc';
 
   root.innerHTML = `
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
@@ -569,7 +737,7 @@ function renderAllLeads(root) {
       <table>
         <thead><tr>
           <th>Name</th><th>Phone</th><th>Source</th><th>Stage</th><th>Temp</th>
-          <th>Owner</th><th>Branch</th><th>Added</th><th>Touched</th><th></th>
+          <th>Owner</th><th>Added</th><th>Touched</th><th></th>
         </tr></thead>
         <tbody>
         ${state.leads.map(l => `
@@ -584,12 +752,11 @@ function renderAllLeads(root) {
             <td><span class="pill gray">${l.stage}</span></td>
             <td><span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></td>
             <td>${escapeHtml(l.owner)}</td>
-            <td>${BRANCH_LABEL[l.branch]||l.branch}</td>
             <td>${l.dateAdded||''}</td>
             <td>${l.lastTouched||''}</td>
             <td>
               <button class="btn small secondary" onclick="editLead(${l.id})">Edit</button>
-              <button class="btn small danger" onclick="deleteLead(${l.id})">×</button>
+              ${canDelete ? `<button class="btn small danger" onclick="deleteLead(${l.id})">×</button>` : ''}
             </td>
           </tr>
         `).join('')}
@@ -620,66 +787,80 @@ window.exportCsv = () => {
 
 // ---------- Org & Team ----------
 function renderOrg(root) {
-  const byBranch = {};
-  for (const b of state.user.branches) byBranch[b] = { leads:0, joined:0, appts:0, showed:0 };
-  for (const l of state.leads) {
-    if (!byBranch[l.branch]) continue;
-    byBranch[l.branch].leads++;
-    if (l.stage === 'Joined') byBranch[l.branch].joined++;
-  }
-  for (const a of state.appointments) {
-    if (!byBranch[a.branch]) continue;
-    byBranch[a.branch].appts++;
-    if (a.status === 'showed') byBranch[a.branch].showed++;
-  }
+  const scs = state.users.filter(u => u.role === 'sc');
   const mk = monthKey();
+
+  const scStats = scs.map(sc => {
+    const leads = state.leads.filter(l => l.owner === sc.username);
+    const joined = leads.filter(l => l.stage === 'Joined').length;
+    const appts = state.appointments.filter(a => a.owner === sc.username).length;
+    const target = state.targets.find(t => t.owner === sc.username && t.month === mk);
+    return { ...sc, leads: leads.length, joined, appts, target: target?.leadsTarget || 0 };
+  });
 
   root.innerHTML = `
     <div class="card">
-      <h2>Branch performance</h2>
+      <h2>Team performance — Sungai Besi</h2>
       <table>
-        <thead><tr><th>Branch</th><th>Leads</th><th>Appts</th><th>Showed</th><th>Joined</th><th>Close %</th></tr></thead>
+        <thead><tr><th>SC</th><th>Leads</th><th>Appts</th><th>Joined</th><th>Target</th><th>Progress</th></tr></thead>
         <tbody>
-          ${Object.entries(byBranch).map(([b,s])=>`
-            <tr><td>${BRANCH_LABEL[b]||b}</td>
-              <td>${s.leads}</td><td>${s.appts}</td><td>${s.showed}</td>
-              <td>${s.joined}</td>
-              <td>${s.leads? Math.round(s.joined/s.leads*100):0}%</td>
-            </tr>
-          `).join('')}
+          ${scStats.map(s => {
+            const pct = s.target ? Math.min(100, Math.round(s.leads/s.target*100)) : 0;
+            return `<tr>
+              <td><strong>${escapeHtml(s.displayName || s.username)}</strong></td>
+              <td>${s.leads}</td><td>${s.appts}</td><td>${s.joined}</td>
+              <td>${s.target}</td>
+              <td><div class="progress" style="width:120px"><div style="width:${pct}%"></div></div> ${pct}%</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
     <div class="card">
-      <h2>Monthly targets · ${mk}</h2>
-      ${state.user.branches.map(b => {
-        const t = state.targets.find(x => x.branch===b && x.month===mk) || { leadsTarget:0, appointmentsTarget:0, joinsTarget:0 };
+      <h2>Monthly targets — ${mk}</h2>
+      ${scs.map(sc => {
+        const t = state.targets.find(x => x.owner===sc.username && x.month===mk) || { leadsTarget:0 };
         return `
           <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px; margin-bottom:8px">
-            <strong>${BRANCH_LABEL[b]||b}</strong>
+            <strong>${escapeHtml(sc.displayName || sc.username)}</strong>
             <div class="row" style="margin-top:6px">
-              <div class="col"><label class="muted">Leads</label>
-                <input type="number" value="${t.leadsTarget}" id="t-${b}-leads" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
-              <div class="col"><label class="muted">Appointments</label>
-                <input type="number" value="${t.appointmentsTarget}" id="t-${b}-appts" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
-              <div class="col"><label class="muted">Joins</label>
-                <input type="number" value="${t.joinsTarget}" id="t-${b}-joins" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
+              <div class="col"><label class="muted">Leads target</label>
+                <input type="number" value="${t.leadsTarget}" id="t-${sc.username}-leads" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
               <div class="col" style="display:flex;align-items:flex-end">
-                <button class="btn" onclick="saveTarget('${b}','${mk}')">Save</button>
+                <button class="btn" onclick="saveTarget('${sc.username}','${mk}')">Save</button>
               </div>
             </div>
           </div>
         `;
       }).join('')}
     </div>
+    <div class="card">
+      <h2>Lead reassignment</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="reassign-lead" style="padding:8px;border:1px solid #d1d5db;border-radius:6px;min-width:200px">
+          ${state.leads.map(l => `<option value="${l.id}">${escapeHtml(l.name)} (${escapeHtml(l.owner)})</option>`).join('')}
+        </select>
+        <span>→</span>
+        <select id="reassign-to" style="padding:8px;border:1px solid #d1d5db;border-radius:6px">
+          ${scs.map(sc => `<option value="${sc.username}">${escapeHtml(sc.displayName || sc.username)}</option>`).join('')}
+        </select>
+        <button class="btn" onclick="reassignLead()">Reassign</button>
+      </div>
+    </div>
   `;
 }
 
-window.saveTarget = async (branch, month) => {
-  const leadsTarget        = Number(document.getElementById(`t-${branch}-leads`).value) || 0;
-  const appointmentsTarget = Number(document.getElementById(`t-${branch}-appts`).value) || 0;
-  const joinsTarget        = Number(document.getElementById(`t-${branch}-joins`).value) || 0;
-  await api('/api/targets', { method:'PUT', body: JSON.stringify({ branch, month, leadsTarget, appointmentsTarget, joinsTarget })});
+window.saveTarget = async (owner, month) => {
+  const leadsTarget = Number(document.getElementById(`t-${owner}-leads`).value) || 0;
+  await api('/api/targets', { method:'PUT', body: JSON.stringify({ owner, month, leadsTarget })});
+  await loadAll(); render();
+};
+
+window.reassignLead = async () => {
+  const leadId = document.getElementById('reassign-lead').value;
+  const newOwner = document.getElementById('reassign-to').value;
+  if (!leadId || !newOwner) return;
+  await api('/api/leads/'+leadId, { method:'PUT', body: JSON.stringify({ owner: newOwner }) });
   await loadAll(); render();
 };
 
@@ -697,6 +878,7 @@ window.newLead = () => editLead(null);
 
 window.editLead = (id) => {
   const l = id ? state.leads.find(x => x.id === id) : null;
+  const canReassign = state.user.role !== 'sc';
   const m = modal(`
     <h3>${l ? 'Edit lead' : 'New lead'}</h3>
     <label>Name</label><input id="ml-name" value="${escapeHtml(l?.name||'')}">
@@ -710,9 +892,7 @@ window.editLead = (id) => {
     <select id="ml-stage">${STAGES.map(s=>`<option ${l?.stage===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Temperature</label>
     <select id="ml-temp">${['Hot','Cold'].map(s=>`<option ${l?.temperature===s?'selected':''}>${s}</option>`).join('')}</select>
-    <label>Branch</label>
-    <select id="ml-branch">${state.user.branches.map(b=>`<option value="${b}" ${l?.branch===b?'selected':''}>${BRANCH_LABEL[b]||b}</option>`).join('')}</select>
-    <label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">
+    ${canReassign ? `<label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">` : ''}
     <label>Notes</label><textarea id="ml-notes" rows="3">${escapeHtml(l?.notes||'')}</textarea>
     <div class="actions">
       <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
@@ -726,10 +906,10 @@ window.editLead = (id) => {
       source:      m.querySelector('#ml-source').value,
       stage:       m.querySelector('#ml-stage').value,
       temperature: m.querySelector('#ml-temp').value,
-      branch:      m.querySelector('#ml-branch').value,
-      owner:       m.querySelector('#ml-owner').value.trim(),
       notes:       m.querySelector('#ml-notes').value,
+      branch:      'sb',
     };
+    if (canReassign) body.owner = m.querySelector('#ml-owner').value.trim();
     if (l) await api('/api/leads/'+l.id, { method:'PUT', body: JSON.stringify(body) });
     else   await api('/api/leads',       { method:'POST', body: JSON.stringify(body) });
     m.remove();
@@ -748,7 +928,6 @@ window.editAppt = (id, prefillLead) => {
   const a = id ? state.appointments.find(x => x.id === id) : null;
   const seedName  = a?.leadName  ?? prefillLead?.name  ?? '';
   const seedPhone = a?.phone     ?? prefillLead?.phone ?? '';
-  const seedBranch= a?.branch    ?? prefillLead?.branch?? state.user.branches[0];
   const m = modal(`
     <h3>${a ? 'Edit appointment' : 'New appointment'}</h3>
     <label>Lead name</label><input id="ma-name" value="${escapeHtml(seedName)}">
@@ -761,8 +940,6 @@ window.editAppt = (id, prefillLead) => {
     <select id="ma-rem">${[1,2,3,7].map(s=>`<option value="${s}" ${a?.reminderDays===s?'selected':''}>${s} day${s>1?'s':''}</option>`).join('')}</select>
     <label>Status</label>
     <select id="ma-status">${['scheduled','showed','noshow'].map(s=>`<option ${a?.status===s?'selected':''}>${s}</option>`).join('')}</select>
-    <label>Branch</label>
-    <select id="ma-branch">${state.user.branches.map(b=>`<option value="${b}" ${seedBranch===b?'selected':''}>${BRANCH_LABEL[b]||b}</option>`).join('')}</select>
     <label>Notes</label><textarea id="ma-notes" rows="2">${escapeHtml(a?.notes||'')}</textarea>
     <label><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
     <div class="actions">
@@ -785,7 +962,7 @@ window.editAppt = (id, prefillLead) => {
       type:         m.querySelector('#ma-type').value,
       reminderDays: Number(m.querySelector('#ma-rem').value),
       status:       m.querySelector('#ma-status').value,
-      branch:       m.querySelector('#ma-branch').value,
+      branch:       'sb',
       notes:        m.querySelector('#ma-notes').value,
     };
     const sendWa = m.querySelector('#ma-whatsapp').checked;
@@ -804,9 +981,7 @@ window.editAppt = (id, prefillLead) => {
 };
 
 // ============ Init ============
-if (state.token && state.user) {
-  bootApp();
-}
+if (state.token && state.user) { bootApp(); }
 </script>
 </body>
 </html>

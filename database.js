@@ -3,8 +3,6 @@ const fs = require('fs');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 
-// DATA_DIR is configurable so a Railway (or other) persistent volume can be
-// mounted at an arbitrary path. Defaults to ./data for local development.
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -18,6 +16,7 @@ db.exec(`
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
     branches TEXT NOT NULL
   );
 
@@ -51,12 +50,22 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS targets (
-    branch TEXT NOT NULL,
+    owner TEXT NOT NULL,
     month TEXT NOT NULL,
     leads_target INTEGER DEFAULT 0,
-    appointments_target INTEGER DEFAULT 0,
-    joins_target INTEGER DEFAULT 0,
-    PRIMARY KEY (branch, month)
+    PRIMARY KEY (owner, month)
+  );
+
+  CREATE TABLE IF NOT EXISTS ratios (
+    owner TEXT NOT NULL,
+    period TEXT NOT NULL,
+    period_type TEXT NOT NULL DEFAULT 'daily',
+    calls_placed INTEGER DEFAULT 0,
+    picked_up INTEGER DEFAULT 0,
+    appts_set INTEGER DEFAULT 0,
+    showed_up INTEGER DEFAULT 0,
+    closed INTEGER DEFAULT 0,
+    PRIMARY KEY (owner, period, period_type)
   );
 
   CREATE TABLE IF NOT EXISTS period_data (
@@ -68,29 +77,29 @@ db.exec(`
   );
 `);
 
+// Add display_name column if missing (migration for existing DBs)
+try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ""'); } catch(e) {}
+// Migrate targets table if it has old schema
+try { db.exec('ALTER TABLE targets ADD COLUMN owner TEXT NOT NULL DEFAULT ""'); } catch(e) {}
+
 function seedUsers() {
-  const count = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
-  if (count > 0) return;
+  // Always reseed: drop all users and re-insert the correct 5
+  db.exec('DELETE FROM users');
 
   const seed = [
-    ['eden',    'eden123',   'owner', 'sb,bg,os'],
-    ['sam',     'sam123',    'md',    'bg,os'],
-    ['fauzi',   'fauzi123',  'abm',   'sb,bg,os'],
-    ['shamin',  'shamin123', 'cm',    'sb'],
-    ['faiz',    'faiz123',   'cm',    'bg'],
-    ['bob',     'bob123',    'cm',    'os'],
-    ['sumugan', 'sc123',     'sc',    'sb'],
-    ['sc2',     'sc456',     'sc',    'sb'],
-    ['scbg',    'sc789',     'sc',    'bg'],
-    ['scos',    'sc000',     'sc',    'os'],
+    ['fauzi',   'fauzi123',  'abm', 'Fauzi Yusuf',    'sb,bg,os'],
+    ['shamin',  'shamin123', 'cm',  'Shamin Muzafar', 'sb'],
+    ['sumugan', 'sc123',     'sc',  'Sumugan',        'sb'],
+    ['fatihah', 'fat123',    'sc',  'Fatihah',        'sb'],
+    ['faez',    'faez123',   'sc',  'Faez',           'sb'],
   ];
 
   const insert = db.prepare(
-    'INSERT INTO users (username, password_hash, role, branches) VALUES (?, ?, ?, ?)'
+    'INSERT INTO users (username, password_hash, role, display_name, branches) VALUES (?, ?, ?, ?, ?)'
   );
   const tx = db.transaction((rows) => {
-    for (const [u, p, r, b] of rows) {
-      insert.run(u, bcrypt.hashSync(p, 10), r, b);
+    for (const [u, p, r, dn, b] of rows) {
+      insert.run(u, bcrypt.hashSync(p, 10), r, dn, b);
     }
   });
   tx(seed);
@@ -101,17 +110,29 @@ function seedLeads() {
   const count = db.prepare('SELECT COUNT(*) AS c FROM leads').get().c;
   if (count > 0) return;
 
-  const today = new Date().toISOString().slice(0, 10);
   const leads = [
-    ['10/6.1',        '0115-144-1092','Walk-in',      'New',                'Hot',  '2026-06-10', ''],
-    ['10/6.2',        '017-588-1528', 'Walk-in',      'New',                'Hot',  '2026-06-10', ''],
-    ['10/6.3',        '011-7001-6797','Walk-in',      'New',                'Cold', '2026-06-10', ''],
-    ['Ahmad Faizal',  '012-3456789',  'Walk-in',      'Appointment booked', 'Hot',  '2026-06-10', 'Interested in 12-month plan. Works night shift.'],
-    ['Nurul Ain',     '011-2233445',  'Referral',     'Contacted',          'Hot',  '2026-06-09', 'Budget conscious. Friend is existing member.'],
-    ['Raj Kumar',     '019-8877665',  'Social media', 'Contacted',          'Hot',  '2026-06-11', 'Saw Instagram promo. Wants to lose weight.'],
-    ['Siti Hajar',    '017-5544332',  'Phone call',   'New',                'Cold', '2026-06-14', 'Called about student pricing.'],
-    ['Kevin Lim',     '016-9988776',  'Walk-in',      'Joined',             'Hot',  '2026-06-10', 'Signed 6-month plan. Referred 1 friend.'],
-    ['Priya Devi',    '013-4455667',  'Event',        'New',                'Hot',  '2026-06-10', 'Met at Sungai Besi roadshow.'],
+    // Sumugan (9)
+    ['10/6.1',        '0115-144-1092','Walk-in',      'New',                'Hot',  '2026-06-10', '', 'sumugan'],
+    ['10/6.2',        '017-588-1528', 'Walk-in',      'New',                'Hot',  '2026-06-10', '', 'sumugan'],
+    ['10/6.3',        '011-7001-6797','Walk-in',      'New',                'Cold', '2026-06-10', '', 'sumugan'],
+    ['Ahmad Faizal',  '012-3456789',  'Walk-in',      'Appointment booked', 'Hot',  '2026-06-10', 'Interested in 12-month plan, works night shift', 'sumugan'],
+    ['Nurul Ain',     '011-2233445',  'Referral',     'Contacted',          'Hot',  '2026-06-09', 'Budget conscious, friend is member', 'sumugan'],
+    ['Raj Kumar',     '019-8877665',  'Social media', 'Contacted',          'Hot',  '2026-06-11', 'Instagram promo, lose weight', 'sumugan'],
+    ['Siti Hajar',    '017-5544332',  'Phone call',   'New',                'Cold', '2026-06-14', 'Student pricing', 'sumugan'],
+    ['Kevin Lim',     '016-9988776',  'Walk-in',      'Joined',             'Hot',  '2026-06-10', 'Signed 6-month, referred 1 friend', 'sumugan'],
+    ['Priya Devi',    '013-4455667',  'Event',        'New',                'Hot',  '2026-06-10', 'Sungai Besi roadshow', 'sumugan'],
+    // Fatihah (5)
+    ['Zara Iman',     '011-5566778',  'Walk-in',      'New',                'Hot',  '2026-07-06', '', 'fatihah'],
+    ['Hafiz Azmi',    '012-6677889',  'Referral',     'Contacted',          'Hot',  '2026-07-05', '', 'fatihah'],
+    ['Tan Mei Ling',  '016-7788990',  'Social media', 'Appointment booked', 'Hot',  '2026-07-04', '', 'fatihah'],
+    ['Roshini',       '019-3344556',  'Walk-in',      'New',                'Cold', '2026-07-06', '', 'fatihah'],
+    ['Jason Wong',    '017-4455667',  'Phone call',   'Contacted',          'Hot',  '2026-07-03', '', 'fatihah'],
+    // Faez (5)
+    ['Amirul Hakim',  '013-8899001',  'Walk-in',      'Contacted',          'Hot',  '2026-07-06', '', 'faez'],
+    ['Nur Syafiqah',  '011-9900112',  'Referral',     'Appointment booked', 'Hot',  '2026-07-05', '', 'faez'],
+    ['Daniel Lau',    '012-0011223',  'Event',        'New',                'Hot',  '2026-07-06', '', 'faez'],
+    ['Salmah Rus',    '016-1122334',  'Walk-in',      'New',                'Cold', '2026-07-04', '', 'faez'],
+    ['Bryan Chong',   '017-2233445',  'Social media', 'Joined',             'Hot',  '2026-07-01', '', 'faez'],
   ];
 
   const insert = db.prepare(`
@@ -120,9 +141,9 @@ function seedLeads() {
   `);
   const tx = db.transaction((rows) => {
     for (const r of rows) {
-      const [name, phone, source, stage, temp, date, notes] = r;
+      const [name, phone, source, stage, temp, date, notes, owner] = r;
       const trail = JSON.stringify([{ at: date, by: 'seed', action: 'created' }]);
-      insert.run(name, phone, source, stage, temp, date, date, notes, 'sumugan', 'sb', trail);
+      insert.run(name, phone, source, stage, temp, date, date, notes, owner, 'sb', trail);
     }
   });
   tx(leads);
@@ -134,17 +155,18 @@ function seedAppointments() {
   if (count > 0) return;
 
   const appts = [
-    ['Ahmad Faizal',  '012-3456789', '2026-06-10', '10:00', 'tour',     2, 'Gym tour'],
-    ['Nurul Ain',     '011-2233445', '2026-06-09', '14:00', 'followup', 1, 'Discuss pricing'],
-    ['Marcus Tan',    '017-1122334', '2026-06-18', '16:00', 'call',     2, 'Callback on student rates'],
-    ['Lim Wei Xin',   '016-5566778', '2026-06-22', '10:00', 'tour',     7, 'Referred by Kevin Lim'],
-    ['Hafizah Yusof', '011-9988776', '2026-06-25', '13:00', 'followup', 3, '2nd follow-up'],
-    ['David Chen',    '012-7766554', '2026-07-03', '11:00', 'tour',     3, 'Corporate membership query'],
+    ['Ahmad Faizal',  '012-3456789', '2026-06-10', '10:00', 'tour',     2, '', 'sumugan'],
+    ['Marcus Tan',    '017-1122334', '2026-06-18', '16:00', 'call',     2, '', 'sumugan'],
+    ['Lim Wei Xin',   '016-5566778', '2026-06-22', '10:00', 'tour',     7, '', 'sumugan'],
+    ['Hafizah Yusof', '011-9988776', '2026-06-25', '13:00', 'followup', 3, '', 'sumugan'],
+    ['David Chen',    '012-7766554', '2026-07-03', '11:00', 'tour',     3, '', 'sumugan'],
+    ['Tan Mei Ling',  '016-7788990', '2026-07-06', '14:00', 'tour',     2, '', 'fatihah'],
+    ['Nur Syafiqah',  '011-9900112', '2026-07-07', '10:00', 'tour',     2, '', 'faez'],
   ];
 
   const insert = db.prepare(`
     INSERT INTO appointments (lead_name, phone, date, time, type, reminder_days, notes, status, owner, branch)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', 'sumugan', 'sb')
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, 'sb')
   `);
   const tx = db.transaction((rows) => {
     for (const r of rows) insert.run(...r);
@@ -153,8 +175,21 @@ function seedAppointments() {
   console.log(`Seeded ${appts.length} appointments`);
 }
 
+function seedTargets() {
+  const count = db.prepare('SELECT COUNT(*) AS c FROM targets').get().c;
+  if (count > 0) return;
+
+  const month = '2026-07';
+  const insert = db.prepare('INSERT OR REPLACE INTO targets (owner, month, leads_target) VALUES (?, ?, ?)');
+  insert.run('sumugan', month, 20);
+  insert.run('fatihah', month, 15);
+  insert.run('faez', month, 15);
+  console.log('Seeded targets');
+}
+
 seedUsers();
 seedLeads();
 seedAppointments();
+seedTargets();
 
 module.exports = db;
