@@ -198,6 +198,16 @@
     padding: 12px 16px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;
   }
 
+  /* charts */
+  .chart-flex { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .legend { flex: 1 1 200px; min-width: 180px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-bottom: 1px solid #2a2e34; font-size: 13px; }
+  .legend-row:hover { background: #262b31; }
+  .legend-chip { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 12px; }
+  .legend-label { flex: 1; color: var(--text-primary); }
+  .legend-val { font-weight: 700; color: var(--text-primary); }
+  .legend-pct { color: var(--text-muted); flex: 0 0 44px; text-align: right; font-size: 12px; }
+
   details.audit { margin-top: 4px; }
   details.audit summary { cursor: pointer; font-size: 11px; color: var(--text-muted); }
   details.audit .trail { font-size: 11px; color: #c3cad2; padding-left: 12px; margin-top: 4px; }
@@ -448,6 +458,86 @@ function time12(hhmm) {
   h = h % 12 || 12;
   return `${h}:${String(min).padStart(2,'0')} ${ampm}`;
 }
+
+// ============ SVG charts ============
+const STAGE_COLORS = {
+  'New':'#5bc0de', 'Follow Up':'#f0ad4e', 'APPT':'#00A86B', 'Show':'#337ab7', 'Closed':'#5cb85c',
+  'Joined':'#2ecc71', 'Not Interested':'#d9534f', 'No Answer':'#8a929c', 'No Show':'#e8542e',
+};
+
+function pieSvg(data, size=200) {
+  const total = data.reduce((s,d)=>s+d.value,0);
+  if (!total) return '<div class="muted">No data</div>';
+  const cx=size/2, cy=size/2, r=size/2-4;
+  let angle=-Math.PI/2;
+  const paths = data.filter(d=>d.value>0).map(d=>{
+    const frac=d.value/total;
+    const a2=angle+frac*2*Math.PI;
+    let p;
+    if (frac>=0.999) {
+      p=`M ${cx-r} ${cy} A ${r} ${r} 0 1 1 ${cx+r} ${cy} A ${r} ${r} 0 1 1 ${cx-r} ${cy}`;
+    } else {
+      const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+      const x2=cx+r*Math.cos(a2),   y2=cy+r*Math.sin(a2);
+      p=`M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${frac>0.5?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    }
+    angle=a2;
+    return `<path d="${p}" fill="${d.color}" stroke="#23272e" stroke-width="2"><title>${escapeHtml(d.label)}: ${d.value} (${Math.round(frac*100)}%)</title></path>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;max-width:100%;flex:0 0 auto">${paths}</svg>`;
+}
+
+function chartLegend(data) {
+  const total = data.reduce((s,d)=>s+d.value,0)||1;
+  return data.map(d=>`
+    <div class="legend-row">
+      <span class="legend-chip" style="background:${d.color}"></span>
+      <span class="legend-label">${escapeHtml(d.label)}</span>
+      <span class="legend-val">${d.value}</span>
+      <span class="legend-pct">${Math.round(d.value/total*100)}%</span>
+    </div>`).join('');
+}
+
+function funnelSvg(stages) {
+  const max = Math.max(...stages.map(s=>s.value), 1);
+  const W=440, rowH=46, w0=W-20;
+  const rows = stages.map((s,i)=>{
+    const w=Math.max(w0*(s.value/max), 60);
+    const x=(W-w)/2, y=i*rowH;
+    return `<rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${rowH-9}" rx="4" fill="${s.color}"><title>${s.label}: ${s.value}</title></rect>
+      <text x="${W/2}" y="${y+(rowH-9)/2+5}" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">${s.label} — ${s.value}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${stages.length*rowH}" style="width:100%;max-width:480px;display:block;margin:0 auto">${rows}</svg>`;
+}
+
+function stackedDailySvg(leads, days=30) {
+  const end=new Date();
+  const dayList=[];
+  for (let i=days-1;i>=0;i--){ const d=new Date(end); d.setDate(end.getDate()-i); dayList.push(isoOf(d)); }
+  const perDay=dayList.map(iso=>{
+    const dl=leads.filter(l=>l.dateAdded===iso);
+    const g={};
+    dl.forEach(l=>{ const s=l.source||'Other'; g[s]=(g[s]||0)+1; });
+    return { iso, g, total: dl.length };
+  });
+  const max=Math.max(...perDay.map(d=>d.total),1);
+  const bw=20, gap=8, H=175, chartH=130, top=16;
+  const W=days*(bw+gap)+10;
+  let bars='';
+  perDay.forEach((d,i)=>{
+    const x=5+i*(bw+gap);
+    let y=top+chartH;
+    Object.entries(d.g).forEach(([s,c])=>{
+      const h=c/max*chartH;
+      y-=h;
+      bars+=`<rect x="${x}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="1" fill="${srcColor(s)}"><title>${d.iso} · ${escapeHtml(s)}: ${c}</title></rect>`;
+    });
+    if (d.total) bars+=`<text x="${x+bw/2}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#e8eaed">${d.total}</text>`;
+    const dd=Number(d.iso.slice(8,10));
+    bars+=`<text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="8.5" fill="#9aa4b3">${dd}/${Number(d.iso.slice(5,7))}</text>`;
+  });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:${W}px;height:${H}px;display:block">${bars}</svg></div>`;
+}
 function monthKey(d=new Date()) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function srcColor(src) { return SOURCE_COLORS[src] || '#999'; }
@@ -491,6 +581,18 @@ function renderDashboard(root) {
   // Stage summary
   const stageCounts = {};
   for (const l of state.leads) stageCounts[l.stage] = (stageCounts[l.stage] || 0) + 1;
+
+  // Chart data
+  const srcData = Object.entries(sourceCounts)
+    .sort((a,b) => b[1] - a[1])
+    .map(([s,c]) => ({ label: s, value: c, color: srcColor(s) }));
+  const funnelData = STAGES.map(s => ({ label: s, value: stageCounts[s] || 0, color: STAGE_COLORS[s] }));
+  const stageData = [...STAGES, ...NON_PIPELINE]
+    .filter(s => stageCounts[s])
+    .map(s => ({ label: s, value: stageCounts[s], color: STAGE_COLORS[s] || '#999' }));
+  const nonPipeData = NON_PIPELINE
+    .filter(s => stageCounts[s])
+    .map(s => ({ label: s, value: stageCounts[s], color: STAGE_COLORS[s] || '#999' }));
 
   root.innerHTML = `
     ${inactive.length ? `<div class="alert">&#9888; ${inactive.length} lead${inactive.length>1?'s':''} not touched in 7+ days. Review under "All Leads".</div>` : ''}
@@ -561,34 +663,31 @@ function renderDashboard(root) {
 
     <div class="row">
       <div class="col card">
-        <h2>Lead Sources</h2>
-        ${Object.entries(sourceCounts)
-          .sort((a,b) => b[1] - a[1])
-          .map(([s,c]) => `
-          <div class="source-bar">
-            <span class="s-label">${escapeHtml(s)}</span>
-            <div class="s-bar-wrap">
-              <div class="s-bar-fill" style="width:${c/totalLeads*100}%; background:${srcColor(s)}"></div>
-            </div>
-            <span class="s-val">${c}</span>
-          </div>
-        `).join('') || '<div class="muted">No leads yet</div>'}
+        <h2>Leads by Source</h2>
+        <div class="chart-flex">
+          <div class="legend">${chartLegend(srcData)}</div>
+          ${pieSvg(srcData)}
+        </div>
       </div>
       <div class="col card">
-        <h2>Pipeline Stages</h2>
-        ${[...STAGES, ...NON_PIPELINE].filter(s => stageCounts[s])
-          .map(s => {
-            const c = stageCounts[s] || 0;
-            const color = STAGES.includes(s) ? 'var(--primary)' : '#999';
-            return `
-            <div class="source-bar">
-              <span class="s-label">${s}</span>
-              <div class="s-bar-wrap">
-                <div class="s-bar-fill" style="width:${c/totalLeads*100}%; background:${color}"></div>
-              </div>
-              <span class="s-val">${c}</span>
-            </div>`;
-          }).join('')}
+        <h2>Sales Funnel</h2>
+        ${funnelSvg(funnelData)}
+        ${nonPipeData.length ? `<div class="muted" style="margin-top:10px;text-align:center">${nonPipeData.map(d => `${d.label}: <strong style="color:${d.color}">${d.value}</strong>`).join(' &nbsp;·&nbsp; ')}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col card">
+        <h2>Lead Status Breakdown</h2>
+        <div class="chart-flex">
+          <div class="legend">${chartLegend(stageData)}</div>
+          ${pieSvg(stageData)}
+        </div>
+      </div>
+      <div class="col card">
+        <h2>New Leads — Last 30 Days</h2>
+        ${stackedDailySvg(state.leads)}
+        <div class="muted" style="margin-top:6px">Stacked by source · hover a bar for details</div>
       </div>
     </div>
 
