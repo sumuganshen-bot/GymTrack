@@ -6,179 +6,240 @@
 <title>GymTrack</title>
 <style>
   *,*::before,*::after { box-sizing: border-box; }
-  body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2937; background: #f3f4f6; }
+  body, html { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif; color: #333; background: #eef1f5; }
   button { font: inherit; cursor: pointer; }
   input, select, textarea, button { font: inherit; }
 
-  /* ---- Global hover/interactive effects ---- */
-  .btn, .quick-logins .ql-btns button, nav.tabs button, .lead-card, .cal-evt, .pill, .who button {
+  /* ---- Palette ---- */
+  :root {
+    --primary: #2e86ab;
+    --primary-dark: #246d8e;
+    --primary-light: #e8f4f8;
+    --accent: #e8542e;
+    --green: #5cb85c;
+    --green-bg: #dff0d8;
+    --amber: #f0ad4e;
+    --amber-bg: #fcf8e3;
+    --red: #d9534f;
+    --red-bg: #f2dede;
+    --border: #dce1e8;
+    --bg-card: #fff;
+    --bg-page: #eef1f5;
+    --text-primary: #2c3e50;
+    --text-muted: #7f8c9a;
+    --header-bg: #2e86ab;
+  }
+
+  /* ---- Global hover ---- */
+  .btn, nav.tabs button, .lead-card, .cal-evt, .pill {
     transition: all 0.15s ease;
   }
-  .btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,.2); transform: translateY(-1px); }
-  .btn.secondary:hover { background: #f3f4f6; box-shadow: 0 3px 10px rgba(0,0,0,.1); }
-  .btn.danger:hover { background: #991b1b; box-shadow: 0 4px 12px rgba(185,28,28,.3); }
-  .who button:hover { background: rgba(255,255,255,.1); border-color: #9ca3af; }
-  nav.tabs button:hover { background: #f9fafb; color: #111827; }
-  .lead-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); border-color: #9ca3af; transform: translateY(-1px); }
-  .cal-evt:hover { filter: brightness(0.9); box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+  .btn:hover { box-shadow: 0 3px 10px rgba(46,134,171,.25); transform: translateY(-1px); }
+  .btn.secondary:hover { background: #f5f7fa; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .btn.danger:hover { background: #c9302c; }
+  nav.tabs button:hover { background: rgba(46,134,171,.08); color: var(--primary-dark); }
+  .lead-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.1); border-left-color: var(--primary); }
+  .cal-evt:hover { filter: brightness(0.92); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
   .card { transition: box-shadow 0.15s ease; }
-  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
-  .login-card button.login-btn:hover { background: #374151; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
 
-  /* ---- Logo (G-clock hybrid) ---- */
+  /* ---- Logo ---- */
   .logo-icon {
     display: inline-flex; align-items: center; justify-content: center;
-    margin-right: 4px; vertical-align: middle;
+    margin-right: 6px; vertical-align: middle;
   }
-  .logo-icon svg { width: 28px; height: 28px; }
-  .logo-text { font-weight: 800; font-size: 18px; letter-spacing: -0.3px; }
-  .logo-text .ym { font-weight: 800; }
+  .logo-icon svg { width: 32px; height: 32px; }
+  .logo-text { font-weight: 700; font-size: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .logo-text .ym { font-weight: 700; }
 
   /* login logo */
-  .login-logo { display: flex; align-items: center; margin-bottom: 6px; }
-  .login-logo .logo-icon svg { width: 40px; height: 40px; }
-  .login-logo .logo-text { font-size: 26px; }
+  .login-logo { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+  .login-logo .logo-icon svg { width: 44px; height: 44px; }
+  .login-logo .logo-text { font-size: 30px; color: var(--primary); }
 
   /* ---- Login ---- */
   #login-screen {
-    position: fixed; inset: 0; background: #BFBFBF;
+    position: fixed; inset: 0; background: linear-gradient(135deg, #2e86ab 0%, #1a5276 100%);
     display: flex; align-items: center; justify-content: center; z-index: 999;
   }
   .login-card {
     position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
-    background: #fff; padding: 36px; width: 380px; border-radius: 12px;
-    box-shadow: 0 16px 48px rgba(0,0,0,.2);
+    background: #fff; padding: 40px; width: 400px; border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
   }
-  .login-card p.sub { margin: 0 0 20px; color: #6b7280; font-size: 13px; }
-  .login-card label { display: block; margin: 10px 0 4px; font-size: 12px; color: #374151; font-weight: 500; }
-  .login-card input { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 8px; transition: border-color 0.15s; }
-  .login-card input:focus { outline: none; border-color: #111827; box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
+  .login-card p.sub { margin: 0 0 24px; color: var(--text-muted); font-size: 13px; text-align: center; }
+  .login-card label { display: block; margin: 12px 0 4px; font-size: 12px; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .login-card input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; background: #f8f9fb; transition: border-color 0.15s; }
+  .login-card input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,134,171,.15); background: #fff; }
   .login-card button.login-btn {
-    width: 100%; margin-top: 18px; padding: 11px 14px;
-    background: #111827; color: #fff; border: 0; border-radius: 8px; font-weight: 600; font-size: 14px;
+    width: 100%; margin-top: 20px; padding: 12px 14px;
+    background: var(--primary); color: #fff; border: 0; border-radius: 4px; font-weight: 600; font-size: 14px;
+    text-transform: uppercase; letter-spacing: .5px;
     transition: all 0.15s ease;
   }
-  .login-card .err { color: #b91c1c; font-size: 12px; margin-top: 8px; min-height: 16px; }
-  .quick-logins { margin-top: 18px; border-top: 1px solid #e5e7eb; padding-top: 16px; }
-  .quick-logins .ql-label { font-size: 11px; color: #6b7280; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .quick-logins .ql-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .login-card button.login-btn:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(46,134,171,.3); }
+  .login-card .err { color: var(--red); font-size: 12px; margin-top: 8px; min-height: 16px; text-align: center; }
+  .quick-logins { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; }
+  .quick-logins .ql-label { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+  .quick-logins .ql-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
   .quick-logins .ql-btns button {
-    padding: 7px 14px; border: 1px solid #d1d5db; background: #f9fafb;
-    border-radius: 8px; font-size: 12px; font-weight: 500; color: #374151;
+    padding: 6px 14px; border: 1px solid var(--border); background: #f8f9fb;
+    border-radius: 4px; font-size: 12px; font-weight: 500; color: #555;
     transition: all 0.15s ease;
   }
-  .quick-logins .ql-btns button:hover { background: #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.08); transform: translateY(-1px); }
+  .quick-logins .ql-btns button:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
   /* ---- App shell ---- */
   header.topbar {
-    background: #111827; color: #fff; padding: 12px 20px;
+    background: var(--header-bg); color: #fff; padding: 0 24px;
     display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
   }
-  .brand { font-weight: 700; letter-spacing: .3px; display: flex; align-items: center; }
-  .who { font-size: 13px; opacity: .85; }
-  .who button { margin-left: 12px; background: transparent; color: #fff; border: 1px solid #4b5563; padding: 4px 10px; border-radius: 4px; }
-  nav.tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 12px; overflow-x: auto; }
+  .brand { font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; }
+  .who { font-size: 13px; opacity: .9; display: flex; align-items: center; gap: 12px; }
+  .who button { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); padding: 5px 14px; border-radius: 4px; font-size: 12px; }
+  .who button:hover { background: rgba(255,255,255,.25); }
+  nav.tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); padding: 0 16px; overflow-x: auto; }
   nav.tabs button {
-    background: transparent; border: 0; padding: 12px 16px; color: #374151;
-    border-bottom: 2px solid transparent; font-weight: 500;
+    background: transparent; border: 0; padding: 14px 20px; color: #666;
+    border-bottom: 3px solid transparent; font-weight: 500; font-size: 13px;
+    text-transform: uppercase; letter-spacing: .3px; margin-bottom: -2px;
   }
-  nav.tabs button.active { color: #111827; border-bottom-color: #111827; }
-  main { padding: 18px 22px 60px; max-width: 1400px; margin: 0 auto; }
+  nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  main { padding: 20px 24px 60px; max-width: 1400px; margin: 0 auto; }
 
-  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-  .card h2 { margin: 0 0 12px; font-size: 16px; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .card h2 { margin: 0 0 14px; font-size: 16px; color: var(--primary); font-weight: 600; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
   .col { flex: 1 1 240px; }
-  .kpi { font-size: 24px; font-weight: 700; }
-  .muted { color: #6b7280; font-size: 12px; }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .pill.hot { background: #fee2e2; color: #b91c1c; }
+
+  /* KPI cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 18px; border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .kpi-card .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .kpi-card .kpi-val { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+  .kpi-card .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .kpi-card.green { border-left-color: var(--green); }
+  .kpi-card.amber { border-left-color: var(--amber); }
+  .kpi-card.red { border-left-color: var(--red); }
+
+  .muted { color: var(--text-muted); font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .pill.hot { background: var(--red-bg); color: var(--red); }
   .pill.cold { background: #dbeafe; color: #1d4ed8; }
-  .pill.green { background: #dcfce7; color: #166534; }
-  .pill.amber { background: #fef3c7; color: #92400e; }
-  .pill.red { background: #fee2e2; color: #b91c1c; }
-  .pill.gray { background: #e5e7eb; color: #374151; }
+  .pill.green { background: var(--green-bg); color: #3c763d; }
+  .pill.amber { background: var(--amber-bg); color: #8a6d3b; }
+  .pill.red { background: var(--red-bg); color: #a94442; }
+  .pill.gray { background: #eef1f5; color: #555; }
 
+  /* Tables — blue header like GymSales */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
-  th { background: #f9fafb; font-weight: 600; color: #374151; }
-  tr:hover td { background: #f5f5f5; }
+  th { background: var(--primary); color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+  th:first-child { border-radius: 4px 0 0 0; }
+  th:last-child { border-radius: 0 4px 0 0; }
+  td { padding: 10px 12px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+  tr:hover td { background: #f8fafe; }
 
-  .btn { background: #111827; color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; font-weight: 500; }
-  .btn.secondary { background: #fff; color: #111827; border: 1px solid #d1d5db; }
-  .btn.small { padding: 4px 8px; font-size: 12px; }
-  .btn.danger { background: #b91c1c; }
+  .btn { background: var(--primary); color: #fff; border: 0; padding: 8px 16px; border-radius: 4px; font-weight: 600; font-size: 13px; }
+  .btn.secondary { background: #fff; color: #555; border: 1px solid var(--border); }
+  .btn.small { padding: 4px 10px; font-size: 12px; }
+  .btn.danger { background: var(--red); color: #fff; }
 
-  .progress { background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden; }
-  .progress > div { background: #16a34a; height: 100%; }
+  .progress { background: #e5e7eb; border-radius: 3px; height: 8px; overflow: hidden; }
+  .progress > div { background: var(--green); height: 100%; border-radius: 3px; }
 
   /* pipeline */
   .pipeline { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
-  .pipe-col { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; min-height: 260px; }
-  .pipe-col h3 { margin: 0 0 8px; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: .4px; display: flex; justify-content: space-between; align-items: center; }
-  .pipe-col h3 .count { background: #e5e7eb; color: #374151; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .pipe-col { background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px; padding: 10px; min-height: 260px; }
+  .pipe-col h3 { margin: 0 0 10px; font-size: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: .5px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  .pipe-col h3 .count { background: var(--primary); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 3px; }
   .lead-card {
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 8px;
+    background: #fff; border: 1px solid var(--border); border-left: 3px solid var(--primary-light); border-radius: 4px; padding: 10px; margin-bottom: 8px;
     cursor: grab; font-size: 13px;
   }
   .lead-card.dragging { opacity: .4; }
-  .pipe-col.drop-over { background: #eef2ff; }
-  .lead-card .lname { font-weight: 600; }
-  .lead-card .lmeta { color: #6b7280; font-size: 11px; margin-top: 2px; }
+  .pipe-col.drop-over { background: var(--primary-light); }
+  .lead-card .lname { font-weight: 600; color: var(--text-primary); }
+  .lead-card .lmeta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
 
   /* calendar */
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .cal-cell { background: #fff; border: 1px solid #e5e7eb; min-height: 80px; padding: 4px; font-size: 11px; }
-  .cal-cell .d { font-weight: 600; color: #6b7280; }
-  .cal-cell.today { outline: 2px solid #111827; }
-  .cal-evt { background: #dbeafe; color: #1d4ed8; padding: 2px 4px; margin-top: 2px; border-radius: 3px; cursor: pointer; }
-  .cal-evt.tour { background: #dcfce7; color: #166534; }
-  .cal-evt.followup { background: #fef3c7; color: #92400e; }
+  .cal-cell { background: #fff; border: 1px solid var(--border); min-height: 80px; padding: 4px; font-size: 11px; }
+  .cal-cell .d { font-weight: 600; color: var(--text-muted); }
+  .cal-cell.today { outline: 2px solid var(--primary); background: var(--primary-light); }
+  .cal-evt { background: #dbeafe; color: #1d4ed8; padding: 2px 4px; margin-top: 2px; border-radius: 3px; cursor: pointer; font-size: 10px; }
+  .cal-evt.tour { background: var(--green-bg); color: #3c763d; }
+  .cal-evt.followup { background: var(--amber-bg); color: #8a6d3b; }
   .cal-evt.call { background: #ede9fe; color: #5b21b6; }
 
   /* modal */
-  .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 500; }
-  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 440px; max-width: 95vw; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
-  .modal h3 { margin: 0 0 12px; }
-  .modal label { display: block; font-size: 12px; color: #374151; margin: 8px 0 4px; }
-  .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; transition: border-color 0.15s; }
-  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: #111827; box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
-  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 500; }
+  .modal { background: #fff; border-radius: 6px; padding: 0; width: 480px; max-width: 95vw; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .modal h3 { margin: 0; padding: 16px 20px; background: var(--primary); color: #fff; font-size: 15px; border-radius: 6px 6px 0 0; }
+  .modal .modal-body { padding: 20px; }
+  .modal label { display: block; font-size: 12px; color: #555; margin: 10px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 4px; background: #f8f9fb; transition: border-color 0.15s; }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,134,171,.12); background: #fff; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--border); background: #f8f9fb; }
 
-  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
-  .bar-row .lbl { flex: 0 0 130px; }
-  .bar-row .bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
-  .bar-row .bar > div { height: 100%; }
-  .bar-row .val { flex: 0 0 50px; text-align: right; color: #374151; }
+  /* source bars */
+  .source-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 6px 0; border-bottom: 1px solid #f3f5f8; }
+  .source-bar .s-label { flex: 0 0 120px; font-size: 13px; color: var(--text-primary); font-weight: 500; }
+  .source-bar .s-bar-wrap { flex: 1; height: 20px; background: #eef1f5; border-radius: 3px; overflow: hidden; }
+  .source-bar .s-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .source-bar .s-val { flex: 0 0 40px; text-align: right; font-weight: 700; font-size: 14px; color: var(--text-primary); }
 
   .alert {
-    background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
-    padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px;
+    background: var(--amber-bg); border-left: 4px solid var(--amber); color: #8a6d3b;
+    padding: 12px 16px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;
   }
 
   details.audit { margin-top: 4px; }
-  details.audit summary { cursor: pointer; font-size: 11px; color: #6b7280; }
-  details.audit .trail { font-size: 11px; color: #374151; padding-left: 12px; margin-top: 4px; }
+  details.audit summary { cursor: pointer; font-size: 11px; color: var(--text-muted); }
+  details.audit .trail { font-size: 11px; color: #555; padding-left: 12px; margin-top: 4px; }
 
-  /* ratios */
-  .ratio-card { text-align: center; padding: 16px; }
+  /* KPI ratio table */
+  .kpi-table { width: 100%; border-collapse: collapse; }
+  .kpi-table th { background: var(--primary); color: #fff; padding: 10px 14px; font-size: 12px; text-transform: uppercase; }
+  .kpi-table td { padding: 14px; border-bottom: 1px solid #eef1f5; font-size: 14px; }
+  .kpi-table tr:hover td { background: #f8fafe; }
+  .kpi-table .kpi-name { font-weight: 500; color: var(--text-primary); }
+  .kpi-table .kpi-actual { font-weight: 700; font-size: 18px; text-align: center; }
+  .kpi-table .kpi-target { font-weight: 600; text-align: center; color: var(--text-muted); }
+  .kpi-table .kpi-bar { width: 150px; }
+  .kpi-table .bar-mini { display: flex; gap: 1px; align-items: flex-end; height: 24px; }
+  .kpi-table .bar-mini span { flex: 1; border-radius: 2px 2px 0 0; min-width: 4px; }
+
+  /* ratio cards */
+  .ratio-card { text-align: center; padding: 18px; border-left: 4px solid var(--border); }
   .ratio-card .ratio-val { font-size: 28px; font-weight: 700; }
-  .ratio-card .ratio-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
-  .ratio-card .ratio-bench { font-size: 11px; color: #9ca3af; }
-  .ratio-card.status-green { border-color: #16a34a; }
-  .ratio-card.status-green .ratio-val { color: #16a34a; }
-  .ratio-card.status-amber { border-color: #d97706; }
-  .ratio-card.status-amber .ratio-val { color: #d97706; }
-  .ratio-card.status-red { border-color: #dc2626; }
-  .ratio-card.status-red .ratio-val { color: #dc2626; }
+  .ratio-card .ratio-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .3px; }
+  .ratio-card .ratio-bench { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .ratio-card.status-green { border-left-color: var(--green); }
+  .ratio-card.status-green .ratio-val { color: var(--green); }
+  .ratio-card.status-amber { border-left-color: var(--amber); }
+  .ratio-card.status-amber .ratio-val { color: var(--amber); }
+  .ratio-card.status-red { border-left-color: var(--red); }
+  .ratio-card.status-red .ratio-val { color: var(--red); }
 
   .bench-chart { margin-top: 12px; }
-  .bench-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .bench-row .bench-lbl { flex: 0 0 130px; font-size: 12px; }
-  .bench-row .bench-bars { flex: 1; position: relative; height: 24px; }
-  .bench-row .bench-bars .you-bar { height: 10px; border-radius: 4px; position: absolute; top: 0; }
-  .bench-row .bench-bars .af-bar { height: 10px; border-radius: 4px; position: absolute; top: 13px; background: #d1d5db; }
-  .bench-row .bench-vals { flex: 0 0 90px; font-size: 11px; text-align: right; }
+  .bench-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid #f3f5f8; }
+  .bench-row .bench-lbl { flex: 0 0 140px; font-size: 13px; font-weight: 500; }
+  .bench-row .bench-bars { flex: 1; position: relative; height: 28px; }
+  .bench-row .bench-bars .you-bar { height: 12px; border-radius: 3px; position: absolute; top: 0; }
+  .bench-row .bench-bars .af-bar { height: 12px; border-radius: 3px; position: absolute; top: 14px; background: #d1d5db; }
+  .bench-row .bench-vals { flex: 0 0 100px; font-size: 12px; text-align: right; font-weight: 600; }
+
+  /* Source colors */
+  .src-walkin { background: #5cb85c; }
+  .src-social { background: #f0ad4e; }
+  .src-website { background: #d9534f; }
+  .src-referral { background: #337ab7; }
+  .src-whatsapp { background: #25d366; }
+  .src-instagram { background: #e1306c; }
+  .src-outreach { background: #5bc0de; }
+  .src-other { background: #999; }
 </style>
 </head>
 <body>
@@ -253,7 +314,7 @@ const TAB_LABELS = {
   pipeline:  'Pipeline',
   ratios:    'Ratios',
   calendar:  'Calendar',
-  allLeads:  'All leads',
+  allLeads:  'All Leads',
   org:       'Org & Team',
 };
 
@@ -262,6 +323,13 @@ const AF_BENCHMARKS = {
   callToAppt:   0.15,
   apptToShow:   0.40,
   showToClose:  0.50,
+};
+
+const SOURCE_COLORS = {
+  'Walk-in': '#5cb85c', 'Social Media': '#f0ad4e', 'Social media': '#f0ad4e',
+  'Website': '#d9534f', 'Referral': '#337ab7', 'WhatsApp': '#25d366',
+  'Instagram': '#e1306c', 'Outreach': '#5bc0de', 'Phone call': '#9b59b6',
+  'Event': '#1abc9c',
 };
 
 // ============ API ============
@@ -359,6 +427,7 @@ function daysSince(iso) { if (!iso) return 0; return Math.floor((Date.now() - ne
 function todayIso() { return new Date().toISOString().slice(0,10); }
 function monthKey(d=new Date()) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function srcColor(src) { return SOURCE_COLORS[src] || '#999'; }
 
 // ============ Render router ============
 function render() {
@@ -390,32 +459,118 @@ function renderDashboard(root) {
   );
 
   const sourceCounts = {};
-  for (const l of state.leads) sourceCounts[l.source] = (sourceCounts[l.source] || 0) + 1;
-  const maxSrc = Math.max(1, ...Object.values(sourceCounts));
+  for (const l of state.leads) {
+    const s = l.source || 'Other';
+    sourceCounts[s] = (sourceCounts[s] || 0) + 1;
+  }
+  const totalLeads = state.leads.length;
+
+  // Stage summary
+  const stageCounts = {};
+  for (const l of state.leads) stageCounts[l.stage] = (stageCounts[l.stage] || 0) + 1;
 
   root.innerHTML = `
-    ${inactive.length ? `<div class="alert">⚠ ${inactive.length} lead${inactive.length>1?'s':''} not touched in 7+ days. Review under "All leads".</div>` : ''}
+    ${inactive.length ? `<div class="alert">&#9888; ${inactive.length} lead${inactive.length>1?'s':''} not touched in 7+ days. Review under "All Leads".</div>` : ''}
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Leads</div>
+        <div class="kpi-val">${state.leads.length}</div>
+        <div class="kpi-sub">${thisMonthLeads.length} this month</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Leads Target</div>
+        <div class="kpi-val">${pct(thisMonthLeads.length, leadsTarget)}%</div>
+        <div class="kpi-sub">${thisMonthLeads.length} / ${leadsTarget}</div>
+        <div class="progress" style="margin-top:8px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Appointments</div>
+        <div class="kpi-val">${thisMonthAppts.length}</div>
+        <div class="kpi-sub">This month</div>
+      </div>
+      <div class="kpi-card ${closed.length > 0 ? 'green' : ''}">
+        <div class="kpi-label">Closed / Joined</div>
+        <div class="kpi-val">${closed.length}</div>
+        <div class="kpi-sub">This month</div>
+      </div>
+      <div class="kpi-card ${inactive.length > 5 ? 'red' : inactive.length > 0 ? 'amber' : 'green'}">
+        <div class="kpi-label">Inactive (7d+)</div>
+        <div class="kpi-val">${inactive.length}</div>
+        <div class="kpi-sub">Needs follow-up</div>
+      </div>
+    </div>
+
     <div class="row">
-      <div class="col card"><div class="muted">Leads this month</div><div class="kpi">${thisMonthLeads.length}</div>
-        <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
-        <div class="muted">Target ${leadsTarget}</div></div>
-      <div class="col card"><div class="muted">Appointments this month</div><div class="kpi">${thisMonthAppts.length}</div></div>
-      <div class="col card"><div class="muted">Closed this month</div><div class="kpi">${closed.length}</div></div>
-      <div class="col card"><div class="muted">Inactive leads (7d+)</div><div class="kpi">${inactive.length}</div>
-        <div class="muted">Needs follow-up</div></div>
+      <div class="col card">
+        <h2>KPI Summary</h2>
+        <table class="kpi-table">
+          <thead><tr><th>KPI</th><th style="text-align:center">Actual</th><th style="text-align:center">Target</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="kpi-name">Leads This Month</td>
+              <td class="kpi-actual">${thisMonthLeads.length}</td>
+              <td class="kpi-target">${leadsTarget}</td>
+              <td><span class="pill ${thisMonthLeads.length >= leadsTarget ? 'green' : thisMonthLeads.length >= leadsTarget * 0.7 ? 'amber' : 'red'}">${thisMonthLeads.length >= leadsTarget ? 'On Track' : 'Behind'}</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-name">Appointments Set</td>
+              <td class="kpi-actual">${thisMonthAppts.length}</td>
+              <td class="kpi-target">-</td>
+              <td><span class="pill gray">-</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-name">Show Rate</td>
+              <td class="kpi-actual">${thisMonthAppts.length ? Math.round(thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length * 100) : 0}%</td>
+              <td class="kpi-target">40%</td>
+              <td><span class="pill ${thisMonthAppts.length && thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length >= 0.4 ? 'green' : 'red'}">${thisMonthAppts.length && thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length >= 0.4 ? 'On Track' : 'Below'}</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-name">Close Rate</td>
+              <td class="kpi-actual">${state.leads.length ? Math.round(closed.length / Math.max(1, thisMonthLeads.length) * 100) : 0}%</td>
+              <td class="kpi-target">50%</td>
+              <td><span class="pill gray">-</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="card">
-      <h2>Source breakdown</h2>
-      ${Object.entries(sourceCounts).map(([s,c]) => `
-        <div class="bar-row">
-          <span class="lbl">${escapeHtml(s)}</span>
-          <div class="bar"><div style="width:${c/maxSrc*100}%; background:#2563eb"></div></div>
-          <span class="val">${c}</span>
-        </div>
-      `).join('') || '<div class="muted">No leads yet</div>'}
+
+    <div class="row">
+      <div class="col card">
+        <h2>Lead Sources</h2>
+        ${Object.entries(sourceCounts)
+          .sort((a,b) => b[1] - a[1])
+          .map(([s,c]) => `
+          <div class="source-bar">
+            <span class="s-label">${escapeHtml(s)}</span>
+            <div class="s-bar-wrap">
+              <div class="s-bar-fill" style="width:${c/totalLeads*100}%; background:${srcColor(s)}"></div>
+            </div>
+            <span class="s-val">${c}</span>
+          </div>
+        `).join('') || '<div class="muted">No leads yet</div>'}
+      </div>
+      <div class="col card">
+        <h2>Pipeline Stages</h2>
+        ${[...STAGES, ...NON_PIPELINE].filter(s => stageCounts[s])
+          .map(s => {
+            const c = stageCounts[s] || 0;
+            const color = STAGES.includes(s) ? 'var(--primary)' : '#999';
+            return `
+            <div class="source-bar">
+              <span class="s-label">${s}</span>
+              <div class="s-bar-wrap">
+                <div class="s-bar-fill" style="width:${c/totalLeads*100}%; background:${color}"></div>
+              </div>
+              <span class="s-val">${c}</span>
+            </div>`;
+          }).join('')}
+      </div>
     </div>
+
     <div class="card">
-      <h2>Today &amp; tomorrow</h2>
+      <h2>Today &amp; Tomorrow</h2>
       ${renderUpcomingTable()}
     </div>
   `;
@@ -428,8 +583,8 @@ function renderUpcomingTable() {
   const list = state.appointments
     .filter(a => a.date === today || a.date === tomIso)
     .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-  if (!list.length) return '<div class="muted">Nothing scheduled.</div>';
-  return `<table><thead><tr><th>When</th><th>Lead</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>
+  if (!list.length) return '<div class="muted" style="padding:8px 0">No appointments scheduled for today or tomorrow.</div>';
+  return `<table><thead><tr><th>When</th><th>Lead</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>
     ${list.map(a => `
       <tr>
         <td>${a.date} ${a.time}</td>
@@ -479,7 +634,7 @@ function renderPipeline(root) {
   root.innerHTML = `
     <div class="card" style="display:flex;justify-content:space-between;align-items:center">
       <h2 style="margin:0">Pipeline</h2>
-      <button class="btn" onclick="newLead()">+ New lead</button>
+      <button class="btn" onclick="newLead()">+ New Lead</button>
     </div>
     <div class="pipeline">${cols}</div>
   `;
@@ -499,7 +654,7 @@ function renderPipeline(root) {
       const lead = state.leads.find(l => String(l.id) === String(draggingId));
       if (!lead || lead.stage === newStage) return;
       await api('/api/leads/'+lead.id, { method:'PUT', body: JSON.stringify({ stage: newStage }) });
-      if (newStage === 'Appointment booked') bookAppt(lead.id);
+      if (newStage === 'APPT') bookAppt(lead.id);
       await loadAll(); render();
     });
   });
@@ -517,7 +672,7 @@ function renderRatios(root) {
     for (const sc of scs) {
       opts.push(`<option value="${sc.username}" ${state.ratioView === sc.username ? 'selected':''}>${escapeHtml(sc.displayName || sc.username)}</option>`);
     }
-    viewSelector = `<select onchange="setRatioView(this.value)">${opts.join('')}</select>`;
+    viewSelector = `<select onchange="setRatioView(this.value)" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#f8f9fb">${opts.join('')}</select>`;
   }
 
   const periodOpts = ['daily','weekly','monthly'].map(p =>
@@ -528,10 +683,10 @@ function renderRatios(root) {
     <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <h2 style="margin:0">Ratios</h2>
       ${viewSelector}
-      <select onchange="setRatioPeriod(this.value)">${periodOpts}</select>
-      <input type="month" value="${state.ratioMonth}" onchange="setRatioMonth(this.value)" style="padding:6px;border:1px solid #d1d5db;border-radius:6px" />
+      <select onchange="setRatioPeriod(this.value)" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#f8f9fb">${periodOpts}</select>
+      <input type="month" value="${state.ratioMonth}" onchange="setRatioMonth(this.value)" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#f8f9fb" />
       <span style="flex:1"></span>
-      <button class="btn" onclick="openRatioInput()">+ Log numbers</button>
+      <button class="btn" onclick="openRatioInput()">+ Log Numbers</button>
     </div>
     <div id="ratio-body"></div>
   `;
@@ -578,10 +733,10 @@ function renderRatioBody() {
   }
 
   const cards = [
-    { label: 'Call picked up %', val: ratios.callPickedUp, bench: AF_BENCHMARKS.callPickedUp },
-    { label: 'Call to appt %', val: ratios.callToAppt, bench: AF_BENCHMARKS.callToAppt },
-    { label: 'Appt to show %', val: ratios.apptToShow, bench: AF_BENCHMARKS.apptToShow },
-    { label: 'Show to close %', val: ratios.showToClose, bench: AF_BENCHMARKS.showToClose },
+    { label: 'Call Pickup %', val: ratios.callPickedUp, bench: AF_BENCHMARKS.callPickedUp },
+    { label: 'Call to Appt %', val: ratios.callToAppt, bench: AF_BENCHMARKS.callToAppt },
+    { label: 'Appt to Show %', val: ratios.apptToShow, bench: AF_BENCHMARKS.apptToShow },
+    { label: 'Show to Close %', val: ratios.showToClose, bench: AF_BENCHMARKS.showToClose },
   ];
 
   const hasData = totals.callsPlaced > 0;
@@ -607,7 +762,7 @@ function renderRatioBody() {
           const maxPct = Math.max(youPct, afPct, 1);
           const youW = youPct / maxPct * 100;
           const afW = afPct / maxPct * 100;
-          const youColor = statusClass(c.val, c.bench) === 'status-green' ? '#16a34a' : statusClass(c.val, c.bench) === 'status-amber' ? '#d97706' : '#dc2626';
+          const youColor = statusClass(c.val, c.bench) === 'status-green' ? 'var(--green)' : statusClass(c.val, c.bench) === 'status-amber' ? 'var(--amber)' : 'var(--red)';
           return `
             <div class="bench-row">
               <div class="bench-lbl">${c.label}</div>
@@ -619,14 +774,14 @@ function renderRatioBody() {
             </div>
           `;
         }).join('')}
-        <div style="font-size:11px;color:#6b7280;margin-top:8px">Top bar = You &middot; Bottom bar = AF Benchmark</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px">Top bar = You &middot; Bottom bar = AF Benchmark</div>
       </div>
     </div>
-    ` : '<div class="card"><div class="muted">No ratio data for this period. Use "+ Log numbers" to enter your daily/weekly/monthly activity.</div></div>'}
+    ` : '<div class="card"><div class="muted">No ratio data for this period. Use "+ Log Numbers" to enter your daily/weekly/monthly activity.</div></div>'}
 
     <div class="card" style="padding:0;overflow:auto">
       <table>
-        <thead><tr><th>Period</th><th>Owner</th><th>Calls</th><th>Picked up</th><th>Appts set</th><th>Showed</th><th>Closed</th></tr></thead>
+        <thead><tr><th>Period</th><th>Owner</th><th>Calls</th><th>Picked Up</th><th>Appts Set</th><th>Showed</th><th>Closed</th></tr></thead>
         <tbody>
           ${data.length ? data.map(r => `
             <tr>
@@ -644,22 +799,24 @@ function renderRatioBody() {
 window.openRatioInput = () => {
   const today = todayIso();
   const m = modal(`
-    <h3>Log ratio numbers</h3>
+    <h3>Log Ratio Numbers</h3>
+    <div class="modal-body">
     <label>Owner</label>
     <input id="ri-owner" value="${state.user.username}" ${state.user.role==='sc'?'readonly':''}>
-    <label>Period (date for daily, e.g. 2026-07-06)</label>
+    <label>Period (date for daily)</label>
     <input id="ri-period" value="${today}">
-    <label>Period type</label>
+    <label>Period Type</label>
     <select id="ri-ptype">
       <option value="daily">Daily</option>
       <option value="weekly">Weekly</option>
       <option value="monthly">Monthly</option>
     </select>
-    <label>Calls placed</label><input id="ri-calls" type="number" value="0">
-    <label>Picked up</label><input id="ri-picked" type="number" value="0">
-    <label>Appointments set</label><input id="ri-appts" type="number" value="0">
-    <label>Showed up</label><input id="ri-showed" type="number" value="0">
+    <label>Calls Placed</label><input id="ri-calls" type="number" value="0">
+    <label>Picked Up</label><input id="ri-picked" type="number" value="0">
+    <label>Appointments Set</label><input id="ri-appts" type="number" value="0">
+    <label>Showed Up</label><input id="ri-showed" type="number" value="0">
     <label>Closed</label><input id="ri-closed" type="number" value="0">
+    </div>
     <div class="actions">
       <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
       <button class="btn" id="ri-save">Save</button>
@@ -688,12 +845,12 @@ function renderCalendar(root) {
   root.innerHTML = `
     <div class="card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="btn secondary" onclick="calNav(-1)">◀</button>
-      <strong id="cal-title"></strong>
+      <strong id="cal-title" style="font-size:15px;color:var(--text-primary)"></strong>
       <button class="btn secondary" onclick="calNav(1)">▶</button>
       <span style="flex:1"></span>
       <button class="btn ${v==='month'?'':'secondary'}" onclick="calView('month')">Month</button>
       <button class="btn ${v==='week'?'':'secondary'}"  onclick="calView('week')">Week</button>
-      <button class="btn" onclick="newAppt()">+ New appointment</button>
+      <button class="btn" onclick="newAppt()">+ New Appointment</button>
     </div>
     <div id="cal-body" class="card"></div>
   `;
@@ -719,7 +876,7 @@ function drawMonth() {
   for (let i=0; i<42; i++) { const dd = new Date(start); dd.setDate(start.getDate()+i); cells.push(dd); }
   const today = todayIso();
   const html = ['<div class="cal-grid">'];
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n => html.push(`<div class="cal-cell" style="min-height:auto;background:#f9fafb"><div class="d">${n}</div></div>`));
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n => html.push(`<div class="cal-cell" style="min-height:auto;background:var(--primary);color:#fff;font-weight:600;text-align:center;border-color:var(--primary)"><div class="d" style="color:#fff">${n}</div></div>`));
   for (const c of cells) {
     const iso = c.toISOString().slice(0,10);
     const inMonth = c.getMonth() === m;
@@ -760,21 +917,21 @@ function renderAllLeads(root) {
 
   root.innerHTML = `
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <h2 style="margin:0">All leads (${state.leads.length})</h2>
-      <div>
+      <h2 style="margin:0">All Leads (${state.leads.length})</h2>
+      <div style="display:flex;gap:8px">
         <button class="btn secondary" onclick="exportCsv()">Export CSV</button>
-        <button class="btn" onclick="newLead()">+ New lead</button>
+        <button class="btn" onclick="newLead()">+ New Lead</button>
       </div>
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table>
         <thead><tr>
           <th>Name</th><th>Phone</th><th>Source</th><th>Stage</th><th>Temp</th>
-          <th>Owner</th><th>Added</th><th>Touched</th><th></th>
+          <th>Owner</th><th>Added</th><th>Touched</th><th>Actions</th>
         </tr></thead>
         <tbody>
         ${state.leads.map(l => `
-          <tr style="${inactive.includes(l.id)?'background:#fffbea':''}">
+          <tr style="${inactive.includes(l.id)?'background:'+('var(--amber-bg)'):''}">
             <td><strong>${escapeHtml(l.name)}</strong>${inactive.includes(l.id)?' <span class="pill amber">stale</span>':''}
               <details class="audit"><summary>Audit (${l.auditTrail.length})</summary>
                 <div class="trail">${l.auditTrail.map(t => `${(t.at||'').slice(0,10)} · ${escapeHtml(t.by)} · ${escapeHtml(t.action)}`).join('<br/>') || '—'}</div>
@@ -833,9 +990,10 @@ function renderOrg(root) {
 
   root.innerHTML = `
     <div class="card">
-      <h2>Team performance — Sungai Besi</h2>
+      <h2>Team Performance — Sungai Besi</h2>
+      <div style="overflow:auto">
       <table>
-        <thead><tr><th>SC</th><th>Leads</th><th>Appts</th><th>Closed</th><th>Target</th><th>Progress</th></tr></thead>
+        <thead><tr><th>Sales Consultant</th><th>Leads</th><th>Appts</th><th>Closed</th><th>Target</th><th>Progress</th></tr></thead>
         <tbody>
           ${scStats.map(s => {
             const pct = s.target ? Math.min(100, Math.round(s.leads/s.target*100)) : 0;
@@ -843,22 +1001,23 @@ function renderOrg(root) {
               <td><strong>${escapeHtml(s.displayName || s.username)}</strong></td>
               <td>${s.leads}</td><td>${s.appts}</td><td>${s.closed}</td>
               <td>${s.target}</td>
-              <td><div class="progress" style="width:120px"><div style="width:${pct}%"></div></div> ${pct}%</td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="width:120px"><div style="width:${pct}%"></div></div> <strong>${pct}%</strong></div></td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
+      </div>
     </div>
     <div class="card">
-      <h2>Monthly targets — ${mk}</h2>
+      <h2>Monthly Targets — ${mk}</h2>
       ${scs.map(sc => {
         const t = state.targets.find(x => x.owner===sc.username && x.month===mk) || { leadsTarget:0 };
         return `
-          <div style="border:1px solid #e5e7eb; border-radius:6px; padding:10px; margin-bottom:8px">
-            <strong>${escapeHtml(sc.displayName || sc.username)}</strong>
-            <div class="row" style="margin-top:6px">
-              <div class="col"><label class="muted">Leads target</label>
-                <input type="number" value="${t.leadsTarget}" id="t-${sc.username}-leads" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:4px"></div>
+          <div style="border:1px solid var(--border); border-radius:4px; padding:12px; margin-bottom:8px; background:#f8f9fb">
+            <strong style="color:var(--text-primary)">${escapeHtml(sc.displayName || sc.username)}</strong>
+            <div class="row" style="margin-top:8px">
+              <div class="col"><label class="muted" style="text-transform:uppercase;letter-spacing:.5px">Leads target</label>
+                <input type="number" value="${t.leadsTarget}" id="t-${sc.username}-leads" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#fff"></div>
               <div class="col" style="display:flex;align-items:flex-end">
                 <button class="btn" onclick="saveTarget('${sc.username}','${mk}')">Save</button>
               </div>
@@ -868,13 +1027,13 @@ function renderOrg(root) {
       }).join('')}
     </div>
     <div class="card">
-      <h2>Lead reassignment</h2>
+      <h2>Lead Reassignment</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <select id="reassign-lead" style="padding:8px;border:1px solid #d1d5db;border-radius:6px;min-width:200px">
+        <select id="reassign-lead" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;min-width:200px;background:#f8f9fb">
           ${state.leads.map(l => `<option value="${l.id}">${escapeHtml(l.name)} (${escapeHtml(l.owner)})</option>`).join('')}
         </select>
-        <span>→</span>
-        <select id="reassign-to" style="padding:8px;border:1px solid #d1d5db;border-radius:6px">
+        <span style="font-weight:600;color:var(--text-muted)">→</span>
+        <select id="reassign-to" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#f8f9fb">
           ${scs.map(sc => `<option value="${sc.username}">${escapeHtml(sc.displayName || sc.username)}</option>`).join('')}
         </select>
         <button class="btn" onclick="reassignLead()">Reassign</button>
@@ -913,12 +1072,13 @@ window.editLead = (id) => {
   const l = id ? state.leads.find(x => x.id === id) : null;
   const canReassign = state.user.role !== 'sc';
   const m = modal(`
-    <h3>${l ? 'Edit lead' : 'New lead'}</h3>
+    <h3>${l ? 'Edit Lead' : 'New Lead'}</h3>
+    <div class="modal-body">
     <label>Name</label><input id="ml-name" value="${escapeHtml(l?.name||'')}">
     <label>Phone</label><input id="ml-phone" value="${escapeHtml(l?.phone||'')}">
     <label>Source</label>
     <select id="ml-source">
-      ${['Walk-in','Referral','Social media','Phone call','Event','Other']
+      ${['Walk-in','Referral','Social Media','Website','WhatsApp','Instagram','Outreach','Phone call','Event','Other']
         .map(s => `<option ${l?.source===s?'selected':''}>${s}</option>`).join('')}
     </select>
     <label>Stage</label>
@@ -927,6 +1087,7 @@ window.editLead = (id) => {
     <select id="ml-temp">${['Hot','Cold'].map(s=>`<option ${l?.temperature===s?'selected':''}>${s}</option>`).join('')}</select>
     ${canReassign ? `<label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">` : ''}
     <label>Notes</label><textarea id="ml-notes" rows="3">${escapeHtml(l?.notes||'')}</textarea>
+    </div>
     <div class="actions">
       <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
       <button class="btn" id="ml-save">Save</button>
@@ -962,8 +1123,9 @@ window.editAppt = (id, prefillLead) => {
   const seedName  = a?.leadName  ?? prefillLead?.name  ?? '';
   const seedPhone = a?.phone     ?? prefillLead?.phone ?? '';
   const m = modal(`
-    <h3>${a ? 'Edit appointment' : 'New appointment'}</h3>
-    <label>Lead name</label><input id="ma-name" value="${escapeHtml(seedName)}">
+    <h3>${a ? 'Edit Appointment' : 'New Appointment'}</h3>
+    <div class="modal-body">
+    <label>Lead Name</label><input id="ma-name" value="${escapeHtml(seedName)}">
     <label>Phone</label><input id="ma-phone" value="${escapeHtml(seedPhone)}">
     <label>Date</label><input id="ma-date" type="date" value="${a?.date||todayIso()}">
     <label>Time</label><input id="ma-time" type="time" value="${a?.time||'10:00'}">
@@ -974,7 +1136,8 @@ window.editAppt = (id, prefillLead) => {
     <label>Status</label>
     <select id="ma-status">${['scheduled','showed','noshow'].map(s=>`<option ${a?.status===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Notes</label><textarea id="ma-notes" rows="2">${escapeHtml(a?.notes||'')}</textarea>
-    <label><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
+    <label style="margin-top:12px"><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
+    </div>
     <div class="actions">
       ${a ? `<button class="btn danger" id="ma-del">Delete</button>` : ''}
       <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
