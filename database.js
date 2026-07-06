@@ -1,87 +1,84 @@
-const path = require('path');
-const fs = require('fs');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-const db = new Database(path.join(DATA_DIR, 'gymtrack.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL,
+      display_name TEXT NOT NULL DEFAULT '',
+      branches TEXT NOT NULL
+    );
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL,
-    display_name TEXT NOT NULL DEFAULT '',
-    branches TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT,
+      source TEXT,
+      stage TEXT NOT NULL DEFAULT 'New',
+      temperature TEXT NOT NULL DEFAULT 'Cold',
+      date_added TEXT NOT NULL,
+      last_touched TEXT NOT NULL,
+      notes TEXT DEFAULT '',
+      owner TEXT NOT NULL,
+      branch TEXT NOT NULL,
+      audit_trail TEXT DEFAULT '[]'
+    );
 
-  CREATE TABLE IF NOT EXISTS leads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    phone TEXT,
-    source TEXT,
-    stage TEXT NOT NULL DEFAULT 'New',
-    temperature TEXT NOT NULL DEFAULT 'Cold',
-    date_added TEXT NOT NULL,
-    last_touched TEXT NOT NULL,
-    notes TEXT DEFAULT '',
-    owner TEXT NOT NULL,
-    branch TEXT NOT NULL,
-    audit_trail TEXT DEFAULT '[]'
-  );
+    CREATE TABLE IF NOT EXISTS appointments (
+      id SERIAL PRIMARY KEY,
+      lead_name TEXT NOT NULL,
+      phone TEXT,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'tour',
+      reminder_days INTEGER NOT NULL DEFAULT 1,
+      notes TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'scheduled',
+      owner TEXT NOT NULL,
+      branch TEXT NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS appointments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lead_name TEXT NOT NULL,
-    phone TEXT,
-    date TEXT NOT NULL,
-    time TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'tour',
-    reminder_days INTEGER NOT NULL DEFAULT 1,
-    notes TEXT DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'scheduled',
-    owner TEXT NOT NULL,
-    branch TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS targets (
+      owner TEXT NOT NULL,
+      month TEXT NOT NULL,
+      leads_target INTEGER DEFAULT 0,
+      PRIMARY KEY (owner, month)
+    );
 
-  CREATE TABLE IF NOT EXISTS targets (
-    owner TEXT NOT NULL,
-    month TEXT NOT NULL,
-    leads_target INTEGER DEFAULT 0,
-    PRIMARY KEY (owner, month)
-  );
+    CREATE TABLE IF NOT EXISTS ratios (
+      owner TEXT NOT NULL,
+      period TEXT NOT NULL,
+      period_type TEXT NOT NULL DEFAULT 'daily',
+      calls_placed INTEGER DEFAULT 0,
+      picked_up INTEGER DEFAULT 0,
+      appts_set INTEGER DEFAULT 0,
+      showed_up INTEGER DEFAULT 0,
+      closed INTEGER DEFAULT 0,
+      PRIMARY KEY (owner, period, period_type)
+    );
 
-  CREATE TABLE IF NOT EXISTS ratios (
-    owner TEXT NOT NULL,
-    period TEXT NOT NULL,
-    period_type TEXT NOT NULL DEFAULT 'daily',
-    calls_placed INTEGER DEFAULT 0,
-    picked_up INTEGER DEFAULT 0,
-    appts_set INTEGER DEFAULT 0,
-    showed_up INTEGER DEFAULT 0,
-    closed INTEGER DEFAULT 0,
-    PRIMARY KEY (owner, period, period_type)
-  );
+    CREATE TABLE IF NOT EXISTS period_data (
+      branch TEXT NOT NULL,
+      month TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT,
+      PRIMARY KEY (branch, month, key)
+    );
+  `);
+}
 
-  CREATE TABLE IF NOT EXISTS period_data (
-    branch TEXT NOT NULL,
-    month TEXT NOT NULL,
-    key TEXT NOT NULL,
-    value TEXT,
-    PRIMARY KEY (branch, month, key)
-  );
-`);
-
-try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ""'); } catch(e) {}
-try { db.exec('ALTER TABLE targets ADD COLUMN owner TEXT NOT NULL DEFAULT ""'); } catch(e) {}
-
-function seedUsers() {
-  db.exec('DELETE FROM users');
+async function seedUsers() {
+  await pool.query('DELETE FROM users');
 
   const seed = [
     ['fauzi',   'fauzi123',  'abm', 'Fauzi Yusuf',    'sb,bg,os'],
@@ -91,23 +88,20 @@ function seedUsers() {
     ['faez',    'faez123',   'sc',  'Faez',           'sb'],
   ];
 
-  const insert = db.prepare(
-    'INSERT INTO users (username, password_hash, role, display_name, branches) VALUES (?, ?, ?, ?, ?)'
-  );
-  const tx = db.transaction((rows) => {
-    for (const [u, p, r, dn, b] of rows) {
-      insert.run(u, bcrypt.hashSync(p, 10), r, dn, b);
-    }
-  });
-  tx(seed);
+  for (const [u, p, r, dn, b] of seed) {
+    const hash = bcrypt.hashSync(p, 10);
+    await pool.query(
+      'INSERT INTO users (username, password_hash, role, display_name, branches) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (username) DO UPDATE SET password_hash=$2, role=$3, display_name=$4, branches=$5',
+      [u, hash, r, dn, b]
+    );
+  }
   console.log(`Seeded ${seed.length} users`);
 }
 
-function seedLeads() {
-  const count = db.prepare('SELECT COUNT(*) AS c FROM leads').get().c;
-  if (count > 0) return;
+async function seedLeads() {
+  const { rows } = await pool.query('SELECT COUNT(*) AS c FROM leads');
+  if (parseInt(rows[0].c) > 0) return;
 
-  // [name, phone, source, owner, stage]
   const leads = [
     ['Irfan', '011-1657-5778', 'Social Media', 'sumugan', 'APPT'],
     ['Wisdom Y', '017-957-7128', 'Social Media', 'sumugan', 'Not Interested'],
@@ -334,43 +328,35 @@ function seedLeads() {
 
   const date = '2026-06-23';
   const owners = ['sumugan', 'fatihah'];
-  const insert = db.prepare(`
-    INSERT INTO leads (name, phone, source, stage, temperature, date_added, last_touched, notes, owner, branch, audit_trail)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const tx = db.transaction((rows) => {
-    for (let i = 0; i < rows.length; i++) {
-      const [name, phone, source, , stage] = rows[i];
-      const assignedOwner = owners[i % 2];
-      const temp = (stage === 'APPT' || stage === 'Follow Up' || stage === 'Show') ? 'Hot' : 'Cold';
-      const trail = JSON.stringify([{ at: date, by: 'seed', action: 'created' }]);
-      insert.run(name, phone, source || '', stage, temp, date, date, '', assignedOwner, 'sb', trail);
-    }
-  });
-  tx(leads);
+
+  for (let i = 0; i < leads.length; i++) {
+    const [name, phone, source, , stage] = leads[i];
+    const assignedOwner = owners[i % 2];
+    const temp = (stage === 'APPT' || stage === 'Follow Up' || stage === 'Show') ? 'Hot' : 'Cold';
+    const trail = JSON.stringify([{ at: date, by: 'seed', action: 'created' }]);
+    await pool.query(
+      'INSERT INTO leads (name, phone, source, stage, temperature, date_added, last_touched, notes, owner, branch, audit_trail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+      [name, phone, source || '', stage, temp, date, date, '', assignedOwner, 'sb', trail]
+    );
+  }
   console.log(`Seeded ${leads.length} leads`);
 }
 
-function seedAppointments() {
-  const count = db.prepare('SELECT COUNT(*) AS c FROM appointments').get().c;
-  if (count > 0) return;
-  console.log('No appointments seeded (add via app)');
-}
-
-function seedTargets() {
-  const count = db.prepare('SELECT COUNT(*) AS c FROM targets').get().c;
-  if (count > 0) return;
+async function seedTargets() {
+  const { rows } = await pool.query('SELECT COUNT(*) AS c FROM targets');
+  if (parseInt(rows[0].c) > 0) return;
 
   const month = '2026-07';
-  const insert = db.prepare('INSERT OR REPLACE INTO targets (owner, month, leads_target) VALUES (?, ?, ?)');
-  insert.run('sumugan', month, 20);
-  insert.run('fatihah', month, 20);
+  await pool.query('INSERT INTO targets (owner, month, leads_target) VALUES ($1, $2, $3) ON CONFLICT (owner, month) DO UPDATE SET leads_target = $3', ['sumugan', month, 20]);
+  await pool.query('INSERT INTO targets (owner, month, leads_target) VALUES ($1, $2, $3) ON CONFLICT (owner, month) DO UPDATE SET leads_target = $3', ['fatihah', month, 20]);
   console.log('Seeded targets');
 }
 
-seedUsers();
-seedLeads();
-seedAppointments();
-seedTargets();
+async function initialize() {
+  await initDB();
+  await seedUsers();
+  await seedLeads();
+  await seedTargets();
+}
 
-module.exports = db;
+module.exports = { pool, initialize };
