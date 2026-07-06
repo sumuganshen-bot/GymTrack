@@ -25,31 +25,18 @@
   .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
   .login-card button.login-btn:hover { background: #374151; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
 
-  /* ---- Logo ---- */
+  /* ---- Logo (G-clock hybrid) ---- */
   .logo-icon {
-    display: inline-block; width: 28px; height: 28px; border: 2.5px solid currentColor;
-    border-radius: 50%; position: relative; margin-right: 6px; vertical-align: middle;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: 4px; vertical-align: middle;
   }
-  .logo-icon::before {
-    content: ''; position: absolute; left: 50%; top: 50%;
-    width: 2.5px; height: 9px; background: currentColor;
-    transform-origin: bottom center; transform: translate(-50%, -100%) rotate(-30deg);
-    border-radius: 2px;
-  }
-  .logo-icon::after {
-    content: ''; position: absolute; left: 50%; top: 50%;
-    width: 2px; height: 6px; background: currentColor;
-    transform-origin: bottom center; transform: translate(-50%, -100%) rotate(60deg);
-    border-radius: 2px;
-  }
+  .logo-icon svg { width: 28px; height: 28px; }
   .logo-text { font-weight: 800; font-size: 18px; letter-spacing: -0.3px; }
   .logo-text .ym { font-weight: 800; }
 
   /* login logo */
   .login-logo { display: flex; align-items: center; margin-bottom: 6px; }
-  .login-logo .logo-icon { width: 36px; height: 36px; border-width: 3px; color: #111827; }
-  .login-logo .logo-icon::before { height: 12px; width: 3px; }
-  .login-logo .logo-icon::after { height: 8px; width: 2.5px; }
+  .login-logo .logo-icon svg { width: 40px; height: 40px; }
   .login-logo .logo-text { font-size: 26px; }
 
   /* ---- Login ---- */
@@ -199,7 +186,7 @@
 <!-- ============ LOGIN ============ -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><span class="logo-icon"></span><span class="logo-text"><span class="ym">ym</span>Track</span></div>
+    <div class="login-logo"><span class="logo-icon"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"><path d="M 82 30 A 40 40 0 1 0 82 70 L 55 70" fill="none"/><line x1="50" y1="50" x2="50" y2="22"/><line x1="50" y1="50" x2="72" y2="50"/></svg></span><span class="logo-text"><span class="ym">ym</span>Track</span></div>
     <p class="sub">AF Trillium &middot; Sungai Besi</p>
     <form id="login-form">
       <label>Username</label>
@@ -225,7 +212,7 @@
 <!-- ============ APP ============ -->
 <div id="app" style="display:none">
   <header class="topbar">
-    <div class="brand"><span class="logo-icon"></span><span class="logo-text"><span class="ym">ym</span>Track</span></div>
+    <div class="brand"><span class="logo-icon"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"><path d="M 82 30 A 40 40 0 1 0 82 70 L 55 70" fill="none"/><line x1="50" y1="50" x2="50" y2="22"/><line x1="50" y1="50" x2="72" y2="50"/></svg></span><span class="logo-text"><span class="ym">ym</span>Track</span></div>
     <div class="who">
       <span id="who-text"></span>
       <button id="logout-btn">Log out</button>
