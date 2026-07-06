@@ -198,7 +198,7 @@ app.post('/api/appointments', auth, async (req, res) => {
     `INSERT INTO appointments (lead_name, phone, date, time, type, reminder_days, notes, status, owner, branch)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
     [b.leadName || 'Unnamed', b.phone || '', b.date, b.time,
-     b.type || 'tour', Number(b.reminderDays || 1),
+     b.type || 'tour', Number(b.reminderDays ?? 1),
      b.notes || '', b.status || 'scheduled', owner, branch]
   );
   res.status(201).json(apptRow(rows[0]));
