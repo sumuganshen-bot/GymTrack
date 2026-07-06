@@ -342,6 +342,45 @@ async function seedLeads() {
   console.log(`Seeded ${leads.length} leads`);
 }
 
+// One-time migration: the original seed stamped every lead 2026-06-23.
+// Spread those historical leads over real time: Sumugan from Sep 2025,
+// Fatihah (started Apr 2026) gets a significantly smaller share from Apr 2026.
+// July 2026 stays empty. Leads added by users (different dates) are untouched.
+async function redistributeSeedLeads() {
+  const { rows } = await pool.query(
+    "SELECT id, last_touched FROM leads WHERE date_added = '2026-06-23' ORDER BY id"
+  );
+  if (rows.length === 0) return;
+
+  const fatCount = Math.round(rows.length * 0.23);
+  const fatMonths = ['2026-04', '2026-05', '2026-06'];
+  const sumMonths = ['2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+
+  // pick every ~4th lead for Fatihah so both keep a mix of stages/sources
+  const fatIds = new Set();
+  const step = rows.length / fatCount;
+  for (let k = 0; k < fatCount; k++) fatIds.add(rows[Math.floor(k * step)].id);
+
+  const sumTotal = rows.length - fatIds.size;
+  let si = 0, fi = 0;
+  for (const r of rows) {
+    const isFat = fatIds.has(r.id);
+    const months = isFat ? fatMonths : sumMonths;
+    const idx = isFat ? fi++ : si++;
+    const total = isFat ? fatIds.size : sumTotal;
+    const month = months[Math.min(months.length - 1, Math.floor(idx * months.length / total))];
+    const day = String(1 + ((idx * 7) % 28)).padStart(2, '0');
+    const date = `${month}-${day}`;
+    await pool.query(
+      `UPDATE leads SET owner = $1, date_added = $2,
+         last_touched = CASE WHEN last_touched = '2026-06-23' THEN $2 ELSE last_touched END
+       WHERE id = $3`,
+      [isFat ? 'fatihah' : 'sumugan', date, r.id]
+    );
+  }
+  console.log(`Redistributed ${rows.length} seed leads: ${sumTotal} to sumugan (Sep 2025 - Jun 2026), ${fatIds.size} to fatihah (Apr - Jun 2026)`);
+}
+
 async function seedTargets() {
   const { rows } = await pool.query('SELECT COUNT(*) AS c FROM targets');
   if (parseInt(rows[0].c) > 0) return;
@@ -356,6 +395,7 @@ async function initialize() {
   await initDB();
   await seedUsers();
   await seedLeads();
+  await redistributeSeedLeads();
   await seedTargets();
 }
 
