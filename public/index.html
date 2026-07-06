@@ -301,7 +301,7 @@ const state = {
   calendarAnchor: new Date(),
   ratioView: 'combined',
   ratioPeriodType: 'daily',
-  ratioMonth: new Date().toISOString().slice(0,7),
+  ratioMonth: isoOf(new Date()).slice(0,7),
 };
 
 const STAGES = ['New', 'Follow Up', 'APPT', 'Show', 'Closed'];
@@ -427,7 +427,8 @@ function renderTabs() {
 
 // ============ Helpers ============
 function daysSince(iso) { if (!iso) return 0; return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
-function todayIso() { return new Date().toISOString().slice(0,10); }
+function isoOf(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function todayIso() { return isoOf(new Date()); }
 function monthKey(d=new Date()) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function srcColor(src) { return SOURCE_COLORS[src] || '#999'; }
@@ -582,7 +583,7 @@ function renderDashboard(root) {
 function renderUpcomingTable() {
   const today = todayIso();
   const tom = new Date(); tom.setDate(tom.getDate()+1);
-  const tomIso = tom.toISOString().slice(0,10);
+  const tomIso = isoOf(tom);
   const list = state.appointments
     .filter(a => a.date === today || a.date === tomIso)
     .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
@@ -881,7 +882,7 @@ function drawMonth() {
   const html = ['<div class="cal-grid">'];
   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n => html.push(`<div class="cal-cell" style="min-height:auto;background:var(--primary);color:#fff;font-weight:600;text-align:center;border-color:var(--primary)"><div class="d" style="color:#fff">${n}</div></div>`));
   for (const c of cells) {
-    const iso = c.toISOString().slice(0,10);
+    const iso = isoOf(c);
     const inMonth = c.getMonth() === m;
     const evts = state.appointments.filter(a => a.date === iso);
     html.push(`<div class="cal-cell ${iso===today?'today':''}" style="${inMonth?'':'opacity:.4'}">
@@ -900,7 +901,7 @@ function drawWeek() {
   const html = ['<div class="cal-grid">'];
   for (let i=0; i<7; i++) {
     const c = new Date(start); c.setDate(start.getDate()+i);
-    const iso = c.toISOString().slice(0,10);
+    const iso = isoOf(c);
     const evts = state.appointments.filter(a => a.date === iso).sort((a,b)=>a.time.localeCompare(b.time));
     html.push(`<div class="cal-cell ${iso===today?'today':''}" style="min-height:200px">
       <div class="d">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]} ${c.getDate()}/${c.getMonth()+1}</div>
@@ -1135,7 +1136,7 @@ window.editAppt = (id, prefillLead) => {
     <label>Type</label>
     <select id="ma-type">${['tour','followup','call'].map(s=>`<option ${a?.type===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Reminder (days before)</label>
-    <select id="ma-rem">${[1,2,3,7].map(s=>`<option value="${s}" ${a?.reminderDays===s?'selected':''}>${s} day${s>1?'s':''}</option>`).join('')}</select>
+    <select id="ma-rem"><option value="0" ${a?.reminderDays===0?'selected':''}>None</option>${[1,2,3,7].map(s=>`<option value="${s}" ${a?.reminderDays===s?'selected':''}>${s} day${s>1?'s':''}</option>`).join('')}</select>
     <label>Status</label>
     <select id="ma-status">${['scheduled','showed','noshow'].map(s=>`<option ${a?.status===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Notes</label><textarea id="ma-notes" rows="2">${escapeHtml(a?.notes||'')}</textarea>
@@ -1165,15 +1166,24 @@ window.editAppt = (id, prefillLead) => {
       notes:        m.querySelector('#ma-notes').value,
     };
     const sendWa = m.querySelector('#ma-whatsapp').checked;
-    if (a) await api('/api/appointments/'+a.id, { method:'PUT', body: JSON.stringify(body)});
-    else   await api('/api/appointments',       { method:'POST', body: JSON.stringify(body)});
+    // Open the window synchronously (before any await) so the popup blocker allows it
+    const waWin = (sendWa && body.phone) ? window.open('', '_blank') : null;
+    try {
+      if (a) await api('/api/appointments/'+a.id, { method:'PUT', body: JSON.stringify(body)});
+      else   await api('/api/appointments',       { method:'POST', body: JSON.stringify(body)});
+    } catch (e) {
+      if (waWin) waWin.close();
+      throw e;
+    }
     m.remove();
-    if (sendWa && body.phone) {
+    if (waWin) {
       const text = encodeURIComponent(
         `Hi ${body.leadName}, this is GymTrack confirming your ${body.type} on ${body.date} at ${body.time}. See you then!`
       );
-      const phone = body.phone.replace(/\D/g,'');
-      window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+      let phone = body.phone.replace(/\D/g,'');
+      // Convert Malaysian local format (01x...) to international (601x...)
+      if (phone.startsWith('0')) phone = '6' + phone;
+      waWin.location = `https://wa.me/${phone}?text=${text}`;
     }
     await loadAll(); render();
   };
