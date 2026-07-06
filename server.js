@@ -166,6 +166,24 @@ app.delete('/api/leads/:id', auth, async (req, res) => {
 });
 
 // --- Appointments ---
+// statuses that mean the lead physically showed up
+const SHOWED_STATUSES = ['trial', 'joined', 'notjoined', 'showed'];
+
+// Adjust the owner's daily ratio counters (appointments set / showed / closed)
+async function bumpRatios(owner, deltas) {
+  const { appts = 0, showed = 0, closed = 0 } = deltas;
+  if (!appts && !showed && !closed) return;
+  const period = nowIso().slice(0, 10);
+  await pool.query(`
+    INSERT INTO ratios (owner, period, period_type, calls_placed, picked_up, appts_set, showed_up, closed)
+    VALUES ($1, $2, 'daily', 0, 0, GREATEST($3, 0), GREATEST($4, 0), GREATEST($5, 0))
+    ON CONFLICT (owner, period, period_type) DO UPDATE SET
+      appts_set = GREATEST(0, ratios.appts_set + $3),
+      showed_up = GREATEST(0, ratios.showed_up + $4),
+      closed    = GREATEST(0, ratios.closed + $5)
+  `, [owner, period, appts, showed, closed]);
+}
+
 function apptRow(r) {
   return {
     id: r.id, leadName: r.lead_name, phone: r.phone,
@@ -230,6 +248,14 @@ app.post('/api/appointments', auth, async (req, res) => {
     }
   }
 
+  // every new appointment counts toward ratios, regardless of how it was created
+  const initialStatus = b.status || 'booked';
+  await bumpRatios(owner, {
+    appts: 1,
+    showed: SHOWED_STATUSES.includes(initialStatus) ? 1 : 0,
+    closed: initialStatus === 'joined' ? 1 : 0,
+  });
+
   res.status(201).json({ ...apptRow(rows[0]), createdLead });
 });
 
@@ -259,6 +285,14 @@ app.put('/api/appointments/:id', auth, async (req, res) => {
     [next.lead_name, next.phone, next.date, next.time, next.type, next.reminder_days,
      next.notes, next.status, next.owner, next.branch, id]
   );
+
+  // status transitions adjust showed/closed ratio counters (with corrections)
+  if (next.status !== existing.status) {
+    const dShowed = Number(SHOWED_STATUSES.includes(next.status)) - Number(SHOWED_STATUSES.includes(existing.status));
+    const dClosed = Number(next.status === 'joined') - Number(existing.status === 'joined');
+    await bumpRatios(next.owner, { showed: dShowed, closed: dClosed });
+  }
+
   res.json(apptRow(rows[0]));
 });
 
@@ -270,6 +304,14 @@ app.delete('/api/appointments/:id', auth, async (req, res) => {
   if (req.user.role === 'sc' && existing.owner !== req.user.username) return res.status(403).json({ error: 'forbidden' });
   if (req.user.role === 'cm' && !canSeeBranch(req.user, existing.branch)) return res.status(403).json({ error: 'forbidden' });
   await pool.query('DELETE FROM appointments WHERE id = $1', [id]);
+
+  // deleting an appointment reverses its ratio contribution
+  await bumpRatios(existing.owner, {
+    appts: -1,
+    showed: SHOWED_STATUSES.includes(existing.status) ? -1 : 0,
+    closed: existing.status === 'joined' ? -1 : 0,
+  });
+
   res.json({ ok: true });
 });
 

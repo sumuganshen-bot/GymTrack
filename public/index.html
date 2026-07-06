@@ -863,11 +863,12 @@ window.logCall = () => {
     const daily = await api('/api/ratios?period_type=daily&month=' + monthKey());
     const cur = daily.find(r => r.owner === me && r.period === today)
              || { callsPlaced: 0, pickedUp: 0, apptsSet: 0, showedUp: 0, closed: 0 };
+    // appts-set is counted when the appointment itself is booked, so only calls/pickups here
     await api('/api/ratios', { method: 'PUT', body: JSON.stringify({
       owner: me, period: today, periodType: 'daily',
       callsPlaced: cur.callsPlaced + 1,
       pickedUp:    cur.pickedUp + (outcome === 'noanswer' ? 0 : 1),
-      apptsSet:    cur.apptsSet + (outcome === 'appt' ? 1 : 0),
+      apptsSet:    cur.apptsSet,
       showedUp:    cur.showedUp,
       closed:      cur.closed,
     })});
