@@ -88,6 +88,7 @@ function seedUsers() {
     ['shamin',  'shamin123', 'cm',  'Shamin Muzafar', 'sb'],
     ['sumugan', 'sc123',     'sc',  'Sumugan',        'sb'],
     ['fatihah', 'fat123',    'sc',  'Fatihah',        'sb'],
+    ['faez',    'faez123',   'sc',  'Faez',           'sb'],
   ];
 
   const insert = db.prepare(
