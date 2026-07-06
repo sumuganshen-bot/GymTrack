@@ -87,10 +87,7 @@ function seedUsers() {
     ['fauzi',   'fauzi123',  'abm', 'Fauzi Yusuf',    'sb,bg,os'],
     ['shamin',  'shamin123', 'cm',  'Shamin Muzafar', 'sb'],
     ['sumugan', 'sc123',     'sc',  'Sumugan',        'sb'],
-    ['dalia',   'dalia123',  'sc',  'Dalia',          'sb'],
-    ['syazwan', 'syaz123',   'sc',  'Syazwan',        'sb'],
-    ['aidil',   'aidil123',  'sc',  'Aidil',          'sb'],
-    ['nisya',   'nisya123',  'sc',  'Nisya',          'sb'],
+    ['fatihah', 'fat123',    'sc',  'Fatihah',        'sb'],
   ];
 
   const insert = db.prepare(
@@ -335,15 +332,18 @@ function seedLeads() {
   ];
 
   const date = '2026-06-23';
+  const owners = ['sumugan', 'fatihah'];
   const insert = db.prepare(`
     INSERT INTO leads (name, phone, source, stage, temperature, date_added, last_touched, notes, owner, branch, audit_trail)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const tx = db.transaction((rows) => {
-    for (const [name, phone, source, owner, stage] of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const [name, phone, source, , stage] = rows[i];
+      const assignedOwner = owners[i % 2];
       const temp = (stage === 'APPT' || stage === 'Follow Up' || stage === 'Show') ? 'Hot' : 'Cold';
       const trail = JSON.stringify([{ at: date, by: 'seed', action: 'created' }]);
-      insert.run(name, phone, source || '', stage, temp, date, date, '', owner || '', 'sb', trail);
+      insert.run(name, phone, source || '', stage, temp, date, date, '', assignedOwner, 'sb', trail);
     }
   });
   tx(leads);
@@ -363,10 +363,7 @@ function seedTargets() {
   const month = '2026-07';
   const insert = db.prepare('INSERT OR REPLACE INTO targets (owner, month, leads_target) VALUES (?, ?, ?)');
   insert.run('sumugan', month, 20);
-  insert.run('dalia', month, 15);
-  insert.run('syazwan', month, 15);
-  insert.run('aidil', month, 15);
-  insert.run('nisya', month, 15);
+  insert.run('fatihah', month, 20);
   console.log('Seeded targets');
 }
 
