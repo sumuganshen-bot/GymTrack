@@ -170,8 +170,10 @@
         <button onclick="quickLogin('fauzi','fauzi123')">Fauzi (ABM)</button>
         <button onclick="quickLogin('shamin','shamin123')">Shamin (CM)</button>
         <button onclick="quickLogin('sumugan','sc123')">Sumugan (SC)</button>
-        <button onclick="quickLogin('fatihah','fat123')">Fatihah (SC)</button>
-        <button onclick="quickLogin('faez','faez123')">Faez (SC)</button>
+        <button onclick="quickLogin('dalia','dalia123')">Dalia (SC)</button>
+        <button onclick="quickLogin('syazwan','syaz123')">Syazwan (SC)</button>
+        <button onclick="quickLogin('aidil','aidil123')">Aidil (SC)</button>
+        <button onclick="quickLogin('nisya','nisya123')">Nisya (SC)</button>
       </div>
     </div>
   </div>
@@ -208,7 +210,8 @@ const state = {
   ratioMonth: new Date().toISOString().slice(0,7),
 };
 
-const STAGES = ['New', 'Contacted', 'Appointment booked', 'Showed', 'Joined'];
+const STAGES = ['New', 'Follow Up', 'APPT', 'Show', 'Closed'];
+const NON_PIPELINE = ['Joined', 'Not Interested', 'No Answer', 'No Show'];
 const BRANCH_LABEL = { sb: 'Trillium Sungai Besi', bg: 'Evo Mall Bangi', os: 'One Shamelin Mall' };
 const ROLE_TABS = {
   abm:   ['dashboard','pipeline','ratios','calendar','allLeads','org'],
@@ -346,14 +349,14 @@ function renderDashboard(root) {
   const mk = monthKey();
   const thisMonthLeads = state.leads.filter(l => l.dateAdded && l.dateAdded.startsWith(mk));
   const thisMonthAppts = state.appointments.filter(a => a.date && a.date.startsWith(mk));
-  const joined = state.leads.filter(l => l.stage === 'Joined' && l.dateAdded && l.dateAdded.startsWith(mk));
+  const closed = state.leads.filter(l => (l.stage === 'Closed' || l.stage === 'Joined') && l.dateAdded && l.dateAdded.startsWith(mk));
 
   const myTarget = state.targets.find(t => t.owner === state.user.username && t.month === mk);
   const leadsTarget = myTarget ? myTarget.leadsTarget : 20;
   const pct = (n,t) => t ? Math.min(100, Math.round(n/t*100)) : 0;
 
   const inactive = state.leads.filter(l =>
-    l.stage !== 'Joined' && l.stage !== 'Lost' && daysSince(l.lastTouched) >= 7
+    l.stage !== 'Closed' && l.stage !== 'Joined' && l.stage !== 'Not Interested' && daysSince(l.lastTouched) >= 7
   );
 
   const sourceCounts = {};
@@ -367,7 +370,7 @@ function renderDashboard(root) {
         <div class="progress" style="margin-top:6px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
         <div class="muted">Target ${leadsTarget}</div></div>
       <div class="col card"><div class="muted">Appointments this month</div><div class="kpi">${thisMonthAppts.length}</div></div>
-      <div class="col card"><div class="muted">Joined this month</div><div class="kpi">${joined.length}</div></div>
+      <div class="col card"><div class="muted">Closed this month</div><div class="kpi">${closed.length}</div></div>
       <div class="col card"><div class="muted">Inactive leads (7d+)</div><div class="kpi">${inactive.length}</div>
         <div class="muted">Needs follow-up</div></div>
     </div>
@@ -721,7 +724,7 @@ function drawWeek() {
 // ---------- All leads ----------
 function renderAllLeads(root) {
   const inactive = state.leads.filter(l =>
-    l.stage !== 'Joined' && l.stage !== 'Lost' && daysSince(l.lastTouched) >= 7
+    l.stage !== 'Closed' && l.stage !== 'Joined' && l.stage !== 'Not Interested' && daysSince(l.lastTouched) >= 7
   ).map(l => l.id);
   const canDelete = state.user.role !== 'sc';
 
@@ -792,23 +795,23 @@ function renderOrg(root) {
 
   const scStats = scs.map(sc => {
     const leads = state.leads.filter(l => l.owner === sc.username);
-    const joined = leads.filter(l => l.stage === 'Joined').length;
+    const closed = leads.filter(l => l.stage === 'Closed' || l.stage === 'Joined').length;
     const appts = state.appointments.filter(a => a.owner === sc.username).length;
     const target = state.targets.find(t => t.owner === sc.username && t.month === mk);
-    return { ...sc, leads: leads.length, joined, appts, target: target?.leadsTarget || 0 };
+    return { ...sc, leads: leads.length, closed, appts, target: target?.leadsTarget || 0 };
   });
 
   root.innerHTML = `
     <div class="card">
       <h2>Team performance — Sungai Besi</h2>
       <table>
-        <thead><tr><th>SC</th><th>Leads</th><th>Appts</th><th>Joined</th><th>Target</th><th>Progress</th></tr></thead>
+        <thead><tr><th>SC</th><th>Leads</th><th>Appts</th><th>Closed</th><th>Target</th><th>Progress</th></tr></thead>
         <tbody>
           ${scStats.map(s => {
             const pct = s.target ? Math.min(100, Math.round(s.leads/s.target*100)) : 0;
             return `<tr>
               <td><strong>${escapeHtml(s.displayName || s.username)}</strong></td>
-              <td>${s.leads}</td><td>${s.appts}</td><td>${s.joined}</td>
+              <td>${s.leads}</td><td>${s.appts}</td><td>${s.closed}</td>
               <td>${s.target}</td>
               <td><div class="progress" style="width:120px"><div style="width:${pct}%"></div></div> ${pct}%</td>
             </tr>`;
@@ -889,7 +892,7 @@ window.editLead = (id) => {
         .map(s => `<option ${l?.source===s?'selected':''}>${s}</option>`).join('')}
     </select>
     <label>Stage</label>
-    <select id="ml-stage">${STAGES.map(s=>`<option ${l?.stage===s?'selected':''}>${s}</option>`).join('')}</select>
+    <select id="ml-stage">${[...STAGES,...NON_PIPELINE].map(s=>`<option ${l?.stage===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Temperature</label>
     <select id="ml-temp">${['Hot','Cold'].map(s=>`<option ${l?.temperature===s?'selected':''}>${s}</option>`).join('')}</select>
     ${canReassign ? `<label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">` : ''}
