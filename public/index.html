@@ -1290,6 +1290,9 @@ window.editAppt = (id, prefillLead) => {
     <div class="modal-body">
     <label>Lead Name</label><input id="ma-name" value="${escapeHtml(seedName)}">
     <label>Phone</label><input id="ma-phone" value="${escapeHtml(seedPhone)}">
+    ${!a ? `<label>Lead Source</label>
+    <select id="ma-source">${['Walk-in','Referral','Social Media','Website','WhatsApp','Instagram','Outreach','Phone call','Event','Other'].map(s=>`<option>${s}</option>`).join('')}</select>
+    <div class="muted" style="margin-top:2px">If this number is new, it's added to your leads automatically</div>` : ''}
     <label>Date</label><input id="ma-date" type="date" value="${a?.date||todayIso()}">
     <label>Time</label><input id="ma-time" type="time" value="${a?.time||'10:00'}">
     <label>Status</label>
@@ -1327,6 +1330,7 @@ window.editAppt = (id, prefillLead) => {
       status:       m.querySelector('#ma-status').value,
       branch:       'sb',
       notes:        m.querySelector('#ma-notes').value,
+      leadSource:   m.querySelector('#ma-source')?.value,
     };
     const sendWa = body.status === 'booked' && m.querySelector('#ma-whatsapp').checked;
     // Open the window synchronously (before any await) so the popup blocker allows it
