@@ -312,7 +312,7 @@ const BRANCH_WA = {
   bg: { name: 'Anytime Fitness Evo Mall, Bangi',       maps: 'https://www.google.com/maps/search/?api=1&query=Anytime+Fitness+Evo+Mall+Bangi' },
   os: { name: 'Anytime Fitness One Shamelin Mall',     maps: 'https://www.google.com/maps/search/?api=1&query=Anytime+Fitness+One+Shamelin+Mall' },
 };
-const APPT_TYPE_WA = { tour: 'gym tour 🏋️', followup: 'follow-up session 💬', call: 'phone call 📞' };
+const APPT_TYPE_WA = { tour: 'gym tour \u{1F3CB}\u{FE0F}', followup: 'follow-up session \u{1F4AC}', call: 'phone call \u{1F4DE}' };
 const ROLE_TABS = {
   abm:   ['dashboard','pipeline','ratios','calendar','allLeads','org'],
   cm:    ['dashboard','pipeline','ratios','calendar','allLeads','org'],
@@ -1200,18 +1200,18 @@ window.editAppt = (id, prefillLead) => {
       const senderName = state.user.displayName || state.user.username;
       const typeLabel = APPT_TYPE_WA[body.type] || body.type;
       const text = encodeURIComponent(
-`Hi ${body.leadName}! 👋
+`Hi ${body.leadName}! \u{1F44B}
 
-This is ${senderName} from Anytime Fitness 💪
+This is ${senderName} from Anytime Fitness \u{1F4AA}
 
 Just confirming your ${typeLabel}:
 
-📅 ${niceDate(body.date)}
-🕒 ${time12(body.time)}
-📍 ${loc.name}
+\u{1F4C5} ${niceDate(body.date)}
+\u{1F552} ${time12(body.time)}
+\u{1F4CD} ${loc.name}
 ${loc.maps}
 
-See you there! 😄 If you need to reschedule, just reply to this message ya 🙏`
+See you there! \u{1F604} If you need to reschedule, just reply to this message ya \u{1F64F}`
       );
       let phone = body.phone.replace(/\D/g,'');
       // Convert Malaysian local format (01x...) to international (601x...)
