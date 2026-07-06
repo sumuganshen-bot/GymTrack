@@ -315,6 +315,8 @@ const state = {
   ratioView: 'combined',
   ratioPeriodType: 'daily',
   ratioMonth: isoOf(new Date()).slice(0,7),
+  dashMode: 'month',
+  dashMonth: isoOf(new Date()).slice(0,7),
 };
 
 const STAGES = ['New', 'Follow Up', 'APPT', 'Show', 'Closed'];
@@ -530,33 +532,31 @@ function funnelSvg(stages) {
   return `<svg viewBox="0 0 ${W} ${stages.length*rowH}" style="width:100%;max-width:480px;display:block;margin:0 auto">${rows}</svg>`;
 }
 
-function stackedDailySvg(leads, days=30) {
-  const end=new Date();
-  const dayList=[];
-  for (let i=days-1;i>=0;i--){ const d=new Date(end); d.setDate(end.getDate()-i); dayList.push(isoOf(d)); }
-  const perDay=dayList.map(iso=>{
-    const dl=leads.filter(l=>l.dateAdded===iso);
-    const g={};
-    dl.forEach(l=>{ const s=l.source||'Other'; g[s]=(g[s]||0)+1; });
-    return { iso, g, total: dl.length };
+// buckets: [{ label, leads }] — stacked by lead source
+function stackedSvg(buckets) {
+  const perBucket = buckets.map(b => {
+    const g = {};
+    b.leads.forEach(l => { const s = l.source || 'Other'; g[s] = (g[s] || 0) + 1; });
+    return { label: b.label, g, total: b.leads.length };
   });
-  const max=Math.max(...perDay.map(d=>d.total),1);
-  const bw=20, gap=8, H=175, chartH=130, top=16;
-  const W=days*(bw+gap)+10;
-  let bars='';
-  perDay.forEach((d,i)=>{
-    const x=5+i*(bw+gap);
-    let y=top+chartH;
-    Object.entries(d.g).forEach(([s,c])=>{
-      const h=c/max*chartH;
-      y-=h;
-      bars+=`<rect x="${x}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="1" fill="${srcColor(s)}"><title>${d.iso} · ${escapeHtml(s)}: ${c}</title></rect>`;
+  const max = Math.max(...perBucket.map(d => d.total), 1);
+  const n = perBucket.length;
+  const bw = n > 12 ? 20 : 46, gap = n > 12 ? 8 : 20;
+  const H = 175, chartH = 130, top = 16;
+  const W = n * (bw + gap) + 10;
+  let bars = '';
+  perBucket.forEach((d, i) => {
+    const x = 5 + i * (bw + gap);
+    let y = top + chartH;
+    Object.entries(d.g).forEach(([s, c]) => {
+      const h = c / max * chartH;
+      y -= h;
+      bars += `<rect x="${x}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="1" fill="${srcColor(s)}"><title>${escapeHtml(d.label)} · ${escapeHtml(s)}: ${c}</title></rect>`;
     });
-    if (d.total) bars+=`<text x="${x+bw/2}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#e8eaed">${d.total}</text>`;
-    const dd=Number(d.iso.slice(8,10));
-    bars+=`<text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="8.5" fill="#9aa4b3">${dd}/${Number(d.iso.slice(5,7))}</text>`;
+    if (d.total) bars += `<text x="${x+bw/2}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="#e8eaed">${d.total}</text>`;
+    bars += `<text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="8.5" fill="#9aa4b3">${escapeHtml(d.label)}</text>`;
   });
-  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:${W}px;height:${H}px;display:block">${bars}</svg></div>`;
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W, 900)}px;height:${H}px;display:block">${bars}</svg></div>`;
 }
 function monthKey(d=new Date()) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -577,30 +577,78 @@ function render() {
 }
 
 // ---------- Dashboard ----------
-function renderDashboard(root) {
-  const mk = monthKey();
-  const thisMonthLeads = state.leads.filter(l => l.dateAdded && l.dateAdded.startsWith(mk));
-  const thisMonthAppts = state.appointments.filter(a => a.date && a.date.startsWith(mk));
-  const closed = state.leads.filter(l => (l.stage === 'Closed' || l.stage === 'Joined') && l.dateAdded && l.dateAdded.startsWith(mk));
+window.setDashMode = (mode, month) => {
+  state.dashMode = mode;
+  if (month) state.dashMonth = month;
+  render();
+};
 
-  const myTarget = state.targets.find(t => t.owner === state.user.username && t.month === mk);
-  const leadsTarget = myTarget ? myTarget.leadsTarget : 20;
+function dashRange() {
+  if (state.dashMode === 'month') {
+    const [y, m] = state.dashMonth.split('-').map(Number);
+    return {
+      start: state.dashMonth + '-01',
+      end: isoOf(new Date(y, m, 0)),
+      months: [state.dashMonth],
+      label: new Date(y, m - 1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+    };
+  }
+  const n = state.dashMode === '3m' ? 3 : 6;
+  const now = new Date();
+  const startD = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
+  const months = [];
+  for (let i = 0; i < n; i++) months.push(monthKey(new Date(startD.getFullYear(), startD.getMonth() + i, 1)));
+  return { start: isoOf(startD), end: todayIso(), months, label: `Last ${n} Months` };
+}
+
+function renderDashboard(root) {
+  const range = dashRange();
+  const inRange = d => d && d >= range.start && d <= range.end;
+
+  const periodLeads = state.leads.filter(l => inRange(l.dateAdded));
+  const periodAppts = state.appointments.filter(a => inRange(a.date));
+  const closed = periodLeads.filter(l => l.stage === 'Closed' || l.stage === 'Joined');
+
+  // target: sum of this user's monthly targets across the period (fallback 20/month)
+  const myTargets = range.months.map(mk2 => state.targets.find(t => t.owner === state.user.username && t.month === mk2));
+  const leadsTarget = myTargets.some(Boolean)
+    ? myTargets.reduce((s, t) => s + (t ? t.leadsTarget : 0), 0)
+    : 20 * range.months.length;
   const pct = (n,t) => t ? Math.min(100, Math.round(n/t*100)) : 0;
 
+  // "now" metric — not affected by the period filter
   const inactive = state.leads.filter(l =>
     l.stage !== 'Closed' && l.stage !== 'Joined' && l.stage !== 'Not Interested' && daysSince(l.lastTouched) >= 7
   );
 
   const sourceCounts = {};
-  for (const l of state.leads) {
+  for (const l of periodLeads) {
     const s = l.source || 'Other';
     sourceCounts[s] = (sourceCounts[s] || 0) + 1;
   }
-  const totalLeads = state.leads.length;
 
-  // Stage summary
+  // Stage summary (within period)
   const stageCounts = {};
-  for (const l of state.leads) stageCounts[l.stage] = (stageCounts[l.stage] || 0) + 1;
+  for (const l of periodLeads) stageCounts[l.stage] = (stageCounts[l.stage] || 0) + 1;
+
+  // stacked chart buckets: daily within a month, monthly for 3m/6m
+  let buckets, chartTitle;
+  if (state.dashMode === 'month') {
+    const [y, m] = state.dashMonth.split('-').map(Number);
+    const dim = new Date(y, m, 0).getDate();
+    buckets = [];
+    for (let d = 1; d <= dim; d++) {
+      const iso = `${state.dashMonth}-${String(d).padStart(2,'0')}`;
+      buckets.push({ label: String(d), leads: periodLeads.filter(l => l.dateAdded === iso) });
+    }
+    chartTitle = `New Leads — ${range.label} (daily)`;
+  } else {
+    buckets = range.months.map(mk2 => ({
+      label: mk2.slice(5) + '/' + mk2.slice(2, 4),
+      leads: periodLeads.filter(l => l.dateAdded && l.dateAdded.startsWith(mk2)),
+    }));
+    chartTitle = 'New Leads by Month';
+  }
 
   // Chart data
   const srcData = Object.entries(sourceCounts)
@@ -614,35 +662,46 @@ function renderDashboard(root) {
     .filter(s => stageCounts[s])
     .map(s => ({ label: s, value: stageCounts[s], color: STAGE_COLORS[s] || '#999' }));
 
+  const showedCount = periodAppts.filter(a => SHOWED_STATUSES.includes(a.status)).length;
+
   root.innerHTML = `
+    <div class="card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">Overview &mdash; ${range.label}</h2>
+      <span style="flex:1"></span>
+      <button class="btn ${state.dashMode==='month' && state.dashMonth===monthKey() ? '' : 'secondary'}" onclick="setDashMode('month','${monthKey()}')">This Month</button>
+      <button class="btn ${state.dashMode==='3m' ? '' : 'secondary'}" onclick="setDashMode('3m')">Last 3 Months</button>
+      <button class="btn ${state.dashMode==='6m' ? '' : 'secondary'}" onclick="setDashMode('6m')">Last 6 Months</button>
+      <input type="month" value="${state.dashMonth}" max="${monthKey()}" onchange="setDashMode('month', this.value)" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#262a30" title="Jump to a past month" />
+    </div>
+
     ${inactive.length ? `<div class="alert">&#9888; ${inactive.length} lead${inactive.length>1?'s':''} not touched in 7+ days. Review under "All Leads".</div>` : ''}
 
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Total Leads</div>
-        <div class="kpi-val">${state.leads.length}</div>
-        <div class="kpi-sub">${thisMonthLeads.length} this month</div>
+        <div class="kpi-label">Leads (${range.label})</div>
+        <div class="kpi-val">${periodLeads.length}</div>
+        <div class="kpi-sub">${state.leads.length} all time</div>
       </div>
       <div class="kpi-card green">
         <div class="kpi-label">Leads Target</div>
-        <div class="kpi-val">${pct(thisMonthLeads.length, leadsTarget)}%</div>
-        <div class="kpi-sub">${thisMonthLeads.length} / ${leadsTarget}</div>
-        <div class="progress" style="margin-top:8px"><div style="width:${pct(thisMonthLeads.length, leadsTarget)}%"></div></div>
+        <div class="kpi-val">${pct(periodLeads.length, leadsTarget)}%</div>
+        <div class="kpi-sub">${periodLeads.length} / ${leadsTarget}</div>
+        <div class="progress" style="margin-top:8px"><div style="width:${pct(periodLeads.length, leadsTarget)}%"></div></div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Appointments</div>
-        <div class="kpi-val">${thisMonthAppts.length}</div>
-        <div class="kpi-sub">This month</div>
+        <div class="kpi-val">${periodAppts.length}</div>
+        <div class="kpi-sub">${range.label}</div>
       </div>
       <div class="kpi-card ${closed.length > 0 ? 'green' : ''}">
         <div class="kpi-label">Closed / Joined</div>
         <div class="kpi-val">${closed.length}</div>
-        <div class="kpi-sub">This month</div>
+        <div class="kpi-sub">${range.label}</div>
       </div>
       <div class="kpi-card ${inactive.length > 5 ? 'red' : inactive.length > 0 ? 'amber' : 'green'}">
         <div class="kpi-label">Inactive (7d+)</div>
         <div class="kpi-val">${inactive.length}</div>
-        <div class="kpi-sub">Needs follow-up</div>
+        <div class="kpi-sub">Needs follow-up (all time)</div>
       </div>
     </div>
 
@@ -653,26 +712,26 @@ function renderDashboard(root) {
           <thead><tr><th>KPI</th><th style="text-align:center">Actual</th><th style="text-align:center">Target</th><th>Status</th></tr></thead>
           <tbody>
             <tr>
-              <td class="kpi-name">Leads This Month</td>
-              <td class="kpi-actual">${thisMonthLeads.length}</td>
+              <td class="kpi-name">Leads Added</td>
+              <td class="kpi-actual">${periodLeads.length}</td>
               <td class="kpi-target">${leadsTarget}</td>
-              <td><span class="pill ${thisMonthLeads.length >= leadsTarget ? 'green' : thisMonthLeads.length >= leadsTarget * 0.7 ? 'amber' : 'red'}">${thisMonthLeads.length >= leadsTarget ? 'On Track' : 'Behind'}</span></td>
+              <td><span class="pill ${periodLeads.length >= leadsTarget ? 'green' : periodLeads.length >= leadsTarget * 0.7 ? 'amber' : 'red'}">${periodLeads.length >= leadsTarget ? 'On Track' : 'Behind'}</span></td>
             </tr>
             <tr>
               <td class="kpi-name">Appointments Set</td>
-              <td class="kpi-actual">${thisMonthAppts.length}</td>
+              <td class="kpi-actual">${periodAppts.length}</td>
               <td class="kpi-target">-</td>
               <td><span class="pill gray">-</span></td>
             </tr>
             <tr>
               <td class="kpi-name">Show Rate</td>
-              <td class="kpi-actual">${thisMonthAppts.length ? Math.round(thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length * 100) : 0}%</td>
+              <td class="kpi-actual">${periodAppts.length ? Math.round(showedCount / periodAppts.length * 100) : 0}%</td>
               <td class="kpi-target">40%</td>
-              <td><span class="pill ${thisMonthAppts.length && thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length >= 0.4 ? 'green' : 'red'}">${thisMonthAppts.length && thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length >= 0.4 ? 'On Track' : 'Below'}</span></td>
+              <td><span class="pill ${periodAppts.length && showedCount / periodAppts.length >= 0.4 ? 'green' : 'red'}">${periodAppts.length && showedCount / periodAppts.length >= 0.4 ? 'On Track' : 'Below'}</span></td>
             </tr>
             <tr>
               <td class="kpi-name">Close Rate</td>
-              <td class="kpi-actual">${state.leads.length ? Math.round(closed.length / Math.max(1, thisMonthLeads.length) * 100) : 0}%</td>
+              <td class="kpi-actual">${periodLeads.length ? Math.round(closed.length / periodLeads.length * 100) : 0}%</td>
               <td class="kpi-target">50%</td>
               <td><span class="pill gray">-</span></td>
             </tr>
@@ -705,8 +764,8 @@ function renderDashboard(root) {
         </div>
       </div>
       <div class="col card">
-        <h2>New Leads — Last 30 Days</h2>
-        ${stackedDailySvg(state.leads)}
+        <h2>${chartTitle}</h2>
+        ${stackedSvg(buckets)}
         <div class="muted" style="margin-top:6px">Stacked by source · hover a bar for details</div>
       </div>
     </div>
