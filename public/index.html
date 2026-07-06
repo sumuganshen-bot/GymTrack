@@ -317,6 +317,7 @@ const state = {
   ratioMonth: isoOf(new Date()).slice(0,7),
   dashMode: 'month',
   dashMonth: isoOf(new Date()).slice(0,7),
+  dashOwner: 'all',
 };
 
 const STAGES = ['New', 'Follow Up', 'APPT', 'Show', 'Closed'];
@@ -522,14 +523,15 @@ function chartLegend(data) {
 
 function funnelSvg(stages) {
   const max = Math.max(...stages.map(s=>s.value), 1);
-  const W=440, rowH=46, w0=W-20;
+  const W=460, rowH=46, w0=W-140;
   const rows = stages.map((s,i)=>{
-    const w=Math.max(w0*(s.value/max), 60);
-    const x=(W-w)/2, y=i*rowH;
-    return `<rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${rowH-9}" rx="4" fill="${s.color}"><title>${s.label}: ${s.value}</title></rect>
-      <text x="${W/2}" y="${y+(rowH-9)/2+5}" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">${s.label} — ${s.value}</text>`;
+    const w=Math.max(w0*(s.value/max), 4);
+    const y=i*rowH;
+    const inside = w > 150;
+    return `<rect x="0" y="${y}" width="${w.toFixed(1)}" height="${rowH-9}" rx="4" fill="${s.color}"><title>${s.label}: ${s.value}</title></rect>
+      <text x="${inside ? 12 : (w+10).toFixed(1)}" y="${y+(rowH-9)/2+5}" font-size="13" font-weight="600" fill="${inside ? '#fff' : '#e8eaed'}">${s.label} — ${s.value}</text>`;
   }).join('');
-  return `<svg viewBox="0 0 ${W} ${stages.length*rowH}" style="width:100%;max-width:480px;display:block;margin:0 auto">${rows}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${stages.length*rowH}" style="width:100%;max-width:540px;display:block">${rows}</svg>`;
 }
 
 // buckets: [{ label, leads }] — stacked by lead source
@@ -582,6 +584,7 @@ window.setDashMode = (mode, month) => {
   if (month) state.dashMonth = month;
   render();
 };
+window.setDashOwner = (v) => { state.dashOwner = v; render(); };
 
 function dashRange() {
   if (state.dashMode === 'month') {
@@ -605,19 +608,36 @@ function renderDashboard(root) {
   const range = dashRange();
   const inRange = d => d && d >= range.start && d <= range.end;
 
-  const periodLeads = state.leads.filter(l => inRange(l.dateAdded));
-  const periodAppts = state.appointments.filter(a => inRange(a.date));
+  // ABM/CM can focus the whole dashboard on a single SC
+  const canFilterSc = state.user.role !== 'sc';
+  const ownerFilter = canFilterSc ? (state.dashOwner || 'all') : 'all';
+  const baseLeads = ownerFilter === 'all' ? state.leads : state.leads.filter(l => l.owner === ownerFilter);
+  const baseAppts = ownerFilter === 'all' ? state.appointments : state.appointments.filter(a => a.owner === ownerFilter);
+
+  const periodLeads = baseLeads.filter(l => inRange(l.dateAdded));
+  const periodAppts = baseAppts.filter(a => inRange(a.date));
   const closed = periodLeads.filter(l => l.stage === 'Closed' || l.stage === 'Joined');
 
-  // target: sum of this user's monthly targets across the period (fallback 20/month)
-  const myTargets = range.months.map(mk2 => state.targets.find(t => t.owner === state.user.username && t.month === mk2));
-  const leadsTarget = myTargets.some(Boolean)
-    ? myTargets.reduce((s, t) => s + (t ? t.leadsTarget : 0), 0)
-    : 20 * range.months.length;
+  // target: sum across the period months for the SC(s) in view (fallback 20/month/SC)
+  let targetOwners;
+  if (!canFilterSc) targetOwners = [state.user.username];
+  else if (ownerFilter !== 'all') targetOwners = [ownerFilter];
+  else {
+    const scs = state.users.filter(u => u.role === 'sc').map(u => u.username);
+    targetOwners = scs.length ? scs : [state.user.username];
+  }
+  const foundTargets = [];
+  for (const o of targetOwners) for (const mk2 of range.months) {
+    const t = state.targets.find(x => x.owner === o && x.month === mk2);
+    if (t) foundTargets.push(t.leadsTarget);
+  }
+  const leadsTarget = foundTargets.length
+    ? foundTargets.reduce((s, v) => s + v, 0)
+    : 20 * range.months.length * targetOwners.length;
   const pct = (n,t) => t ? Math.min(100, Math.round(n/t*100)) : 0;
 
-  // "now" metric — not affected by the period filter
-  const inactive = state.leads.filter(l =>
+  // "now" metric — not affected by the period filter (but follows the SC filter)
+  const inactive = baseLeads.filter(l =>
     l.stage !== 'Closed' && l.stage !== 'Joined' && l.stage !== 'Not Interested' && daysSince(l.lastTouched) >= 7
   );
 
@@ -666,8 +686,12 @@ function renderDashboard(root) {
 
   root.innerHTML = `
     <div class="card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <h2 style="margin:0">Overview &mdash; ${range.label}</h2>
+      <h2 style="margin:0">Overview &mdash; ${range.label}${ownerFilter !== 'all' ? ' &middot; ' + escapeHtml((state.users.find(u=>u.username===ownerFilter)||{}).displayName || ownerFilter) : ''}</h2>
       <span style="flex:1"></span>
+      ${canFilterSc ? `<select onchange="setDashOwner(this.value)" style="padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:#262a30">
+        <option value="all">All SCs</option>
+        ${state.users.filter(u=>u.role==='sc').map(u=>`<option value="${u.username}" ${ownerFilter===u.username?'selected':''}>${escapeHtml(u.displayName||u.username)}</option>`).join('')}
+      </select>` : ''}
       <button class="btn ${state.dashMode==='month' && state.dashMonth===monthKey() ? '' : 'secondary'}" onclick="setDashMode('month','${monthKey()}')">This Month</button>
       <button class="btn ${state.dashMode==='3m' ? '' : 'secondary'}" onclick="setDashMode('3m')">Last 3 Months</button>
       <button class="btn ${state.dashMode==='6m' ? '' : 'secondary'}" onclick="setDashMode('6m')">Last 6 Months</button>
@@ -680,7 +704,7 @@ function renderDashboard(root) {
       <div class="kpi-card">
         <div class="kpi-label">Leads (${range.label})</div>
         <div class="kpi-val">${periodLeads.length}</div>
-        <div class="kpi-sub">${state.leads.length} all time</div>
+        <div class="kpi-sub">${baseLeads.length} all time</div>
       </div>
       <div class="kpi-card green">
         <div class="kpi-label">Leads Target</div>
