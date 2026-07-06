@@ -169,19 +169,21 @@ app.delete('/api/leads/:id', auth, async (req, res) => {
 // statuses that mean the lead physically showed up
 const SHOWED_STATUSES = ['trial', 'joined', 'notjoined', 'showed'];
 
-// Adjust the owner's daily ratio counters (appointments set / showed / closed)
+// Adjust the owner's daily ratio counters
 async function bumpRatios(owner, deltas) {
-  const { appts = 0, showed = 0, closed = 0 } = deltas;
-  if (!appts && !showed && !closed) return;
+  const { calls = 0, picked = 0, appts = 0, showed = 0, closed = 0 } = deltas;
+  if (!calls && !picked && !appts && !showed && !closed) return;
   const period = nowIso().slice(0, 10);
   await pool.query(`
     INSERT INTO ratios (owner, period, period_type, calls_placed, picked_up, appts_set, showed_up, closed)
-    VALUES ($1, $2, 'daily', 0, 0, GREATEST($3, 0), GREATEST($4, 0), GREATEST($5, 0))
+    VALUES ($1, $2, 'daily', GREATEST($3, 0), GREATEST($4, 0), GREATEST($5, 0), GREATEST($6, 0), GREATEST($7, 0))
     ON CONFLICT (owner, period, period_type) DO UPDATE SET
-      appts_set = GREATEST(0, ratios.appts_set + $3),
-      showed_up = GREATEST(0, ratios.showed_up + $4),
-      closed    = GREATEST(0, ratios.closed + $5)
-  `, [owner, period, appts, showed, closed]);
+      calls_placed = GREATEST(0, ratios.calls_placed + $3),
+      picked_up    = GREATEST(0, ratios.picked_up + $4),
+      appts_set    = GREATEST(0, ratios.appts_set + $5),
+      showed_up    = GREATEST(0, ratios.showed_up + $6),
+      closed       = GREATEST(0, ratios.closed + $7)
+  `, [owner, period, calls, picked, appts, showed, closed]);
 }
 
 function apptRow(r) {
@@ -248,9 +250,13 @@ app.post('/api/appointments', auth, async (req, res) => {
     }
   }
 
-  // every new appointment counts toward ratios, regardless of how it was created
+  // every new appointment counts toward ratios, regardless of how it was created.
+  // A manually keyed appointment (e.g. walk-in) also counts as 1 call + 1 pickup
+  // for daily activity — unless it came from Log Call, which already counted those.
   const initialStatus = b.status || 'booked';
   await bumpRatios(owner, {
+    calls: b.fromCall ? 0 : 1,
+    picked: b.fromCall ? 0 : 1,
     appts: 1,
     showed: SHOWED_STATUSES.includes(initialStatus) ? 1 : 0,
     closed: initialStatus === 'joined' ? 1 : 0,

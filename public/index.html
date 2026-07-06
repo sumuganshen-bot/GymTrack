@@ -967,7 +967,9 @@ window.logCall = () => {
     m.remove();
     await loadAll(); render();
     // 3) straight into booking if the call produced an appointment
-    if (outcome === 'appt') bookAppt(lead.id);
+    // (fromCall: the call/pickup was already counted above, so the
+    //  appointment POST only adds the appt-set)
+    if (outcome === 'appt') bookAppt(lead.id, { fromCall: true });
   };
 };
 
@@ -1420,14 +1422,14 @@ window.editLead = (id) => {
   };
 };
 
-window.bookAppt = (leadId) => {
+window.bookAppt = (leadId, opts) => {
   const l = state.leads.find(x => x.id === leadId);
-  newAppt(l);
+  editAppt(null, l, opts);
 };
 
 window.newAppt = (lead) => editAppt(null, lead);
 
-window.editAppt = (id, prefillLead) => {
+window.editAppt = (id, prefillLead, opts = {}) => {
   const a = id ? state.appointments.find(x => x.id === id) : null;
   const seedName  = a?.leadName  ?? prefillLead?.name  ?? '';
   const seedPhone = a?.phone     ?? prefillLead?.phone ?? '';
@@ -1477,6 +1479,7 @@ window.editAppt = (id, prefillLead) => {
       branch:       'sb',
       notes:        m.querySelector('#ma-notes').value,
       leadSource:   m.querySelector('#ma-source')?.value,
+      fromCall:     !!opts.fromCall,
     };
     const sendWa = body.status === 'booked' && m.querySelector('#ma-whatsapp').checked;
     // Open the window synchronously (before any await) so the popup blocker allows it
