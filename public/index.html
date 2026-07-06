@@ -780,7 +780,7 @@ function renderPipeline(root) {
         ${pager}
         ${leads.map(l => `
           <div class="lead-card" draggable="true" data-id="${l.id}">
-            <div class="lname">${escapeHtml(l.name)} <span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></div>
+            <div class="lname">${escapeHtml(l.name)}</div>
             <div class="lmeta">${escapeHtml(l.phone||'')} · ${escapeHtml(l.source||'')}</div>
             <div class="lmeta">Owner: ${escapeHtml(l.owner)}</div>
             <div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap">
@@ -1089,7 +1089,7 @@ function renderAllLeads(root) {
     <div class="card" style="padding:0;overflow:auto">
       <table>
         <thead><tr>
-          <th>Name</th><th>Phone</th><th>Source</th><th>Stage</th><th>Temp</th>
+          <th>Name</th><th>Phone</th><th>Source</th><th>Stage</th>
           <th>Owner</th><th>Added</th><th>Touched</th><th>Actions</th>
         </tr></thead>
         <tbody>
@@ -1103,7 +1103,6 @@ function renderAllLeads(root) {
             <td>${escapeHtml(l.phone||'')}</td>
             <td>${escapeHtml(l.source||'')}</td>
             <td><span class="pill gray">${l.stage}</span></td>
-            <td><span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></td>
             <td>${escapeHtml(l.owner)}</td>
             <td>${l.dateAdded||''}</td>
             <td>${l.lastTouched||''}</td>
@@ -1126,9 +1125,9 @@ window.deleteLead = async (id) => {
 };
 
 window.exportCsv = () => {
-  const rows = [['Name','Phone','Source','Stage','Temperature','Owner','Branch','DateAdded','LastTouched','Notes']];
+  const rows = [['Name','Phone','Source','Stage','Owner','Branch','DateAdded','LastTouched','Notes']];
   for (const l of state.leads) {
-    rows.push([l.name,l.phone,l.source,l.stage,l.temperature,l.owner,l.branch,l.dateAdded,l.lastTouched,(l.notes||'').replace(/\n/g,' ')]);
+    rows.push([l.name,l.phone,l.source,l.stage,l.owner,l.branch,l.dateAdded,l.lastTouched,(l.notes||'').replace(/\n/g,' ')]);
   }
   const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
@@ -1246,8 +1245,6 @@ window.editLead = (id) => {
     </select>
     <label>Stage</label>
     <select id="ml-stage">${[...STAGES,...NON_PIPELINE].map(s=>`<option ${l?.stage===s?'selected':''}>${s}</option>`).join('')}</select>
-    <label>Temperature</label>
-    <select id="ml-temp">${['Hot','Cold'].map(s=>`<option ${l?.temperature===s?'selected':''}>${s}</option>`).join('')}</select>
     ${canReassign ? `<label>Owner</label><input id="ml-owner" value="${escapeHtml(l?.owner||state.user.username)}">` : ''}
     <label>Notes</label><textarea id="ml-notes" rows="3">${escapeHtml(l?.notes||'')}</textarea>
     </div>
@@ -1262,7 +1259,6 @@ window.editLead = (id) => {
       phone:       m.querySelector('#ml-phone').value.trim(),
       source:      m.querySelector('#ml-source').value,
       stage:       m.querySelector('#ml-stage').value,
-      temperature: m.querySelector('#ml-temp').value,
       notes:       m.querySelector('#ml-notes').value,
       branch:      'sb',
     };
