@@ -795,7 +795,10 @@ function renderPipeline(root) {
   root.innerHTML = `
     <div class="card" style="display:flex;justify-content:space-between;align-items:center">
       <h2 style="margin:0">Pipeline</h2>
-      <button class="btn" onclick="newLead()">+ New Lead</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn secondary" onclick="logCall()">&#128222; Log Call</button>
+        <button class="btn" onclick="newLead()">+ New Lead</button>
+      </div>
     </div>
     <div class="pipeline">${cols}</div>
   `;
@@ -820,6 +823,69 @@ function renderPipeline(root) {
     });
   });
 }
+
+// ---------- Log Call ----------
+window.logCall = () => {
+  const leads = state.leads.slice().sort((a,b) => a.name.localeCompare(b.name));
+  const m = modal(`
+    <h3>&#128222; Log Call Attempt</h3>
+    <div class="modal-body">
+      <label>Lead</label>
+      <input id="lc-lead" list="lc-leads" placeholder="Type to search name or phone...">
+      <datalist id="lc-leads">${leads.map(l => `<option value="${escapeHtml(l.name)} (${escapeHtml(l.phone||'no phone')})"></option>`).join('')}</datalist>
+      <label>Outcome</label>
+      <select id="lc-outcome">
+        <option value="noanswer">No Answer</option>
+        <option value="ni">Picked Up &mdash; Not Interested</option>
+        <option value="fu">Picked Up &mdash; Follow Up</option>
+        <option value="appt">Picked Up &mdash; Appointment Set</option>
+      </select>
+      <label>Note (optional)</label>
+      <textarea id="lc-note" rows="2" placeholder="e.g. asked to call back next week"></textarea>
+      <div class="muted" style="margin-top:8px">Saving updates your call ratios for today. "Appointment Set" opens the booking form right after.</div>
+    </div>
+    <div class="actions">
+      <button class="btn secondary" onclick="this.closest('.modal-back').remove()">Cancel</button>
+      <button class="btn" id="lc-save">Save Call</button>
+    </div>
+  `);
+  m.querySelector('#lc-save').onclick = async () => {
+    const val = m.querySelector('#lc-lead').value.trim();
+    const lead = leads.find(l => `${l.name} (${l.phone||'no phone'})` === val)
+              || leads.find(l => l.name.toLowerCase() === val.toLowerCase());
+    if (!lead) { alert('Please pick a lead from the list'); return; }
+    const outcome = m.querySelector('#lc-outcome').value;
+    const note = m.querySelector('#lc-note').value.trim();
+    const me = state.user.username;
+    const today = todayIso();
+
+    // 1) bump today's ratio numbers
+    const daily = await api('/api/ratios?period_type=daily&month=' + monthKey());
+    const cur = daily.find(r => r.owner === me && r.period === today)
+             || { callsPlaced: 0, pickedUp: 0, apptsSet: 0, showedUp: 0, closed: 0 };
+    await api('/api/ratios', { method: 'PUT', body: JSON.stringify({
+      owner: me, period: today, periodType: 'daily',
+      callsPlaced: cur.callsPlaced + 1,
+      pickedUp:    cur.pickedUp + (outcome === 'noanswer' ? 0 : 1),
+      apptsSet:    cur.apptsSet + (outcome === 'appt' ? 1 : 0),
+      showedUp:    cur.showedUp,
+      closed:      cur.closed,
+    })});
+
+    // 2) update the lead (stage + note + last-touched)
+    const stageMap = { ni: 'Not Interested', fu: 'Follow Up', appt: 'APPT' };
+    const body = {};
+    if (stageMap[outcome] && lead.stage !== stageMap[outcome]) body.stage = stageMap[outcome];
+    if (note) body.notes = (lead.notes ? lead.notes + '\n' : '') + `[${today}] Call: ${note}`;
+    if (!Object.keys(body).length) body.notes = lead.notes || '';
+    await api('/api/leads/' + lead.id, { method: 'PUT', body: JSON.stringify(body) });
+
+    m.remove();
+    await loadAll(); render();
+    // 3) straight into booking if the call produced an appointment
+    if (outcome === 'appt') bookAppt(lead.id);
+  };
+};
 
 // ---------- Ratios ----------
 function renderRatios(root) {
