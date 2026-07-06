@@ -201,7 +201,36 @@ app.post('/api/appointments', auth, async (req, res) => {
      b.type || 'tour', Number(b.reminderDays ?? 1),
      b.notes || '', b.status || 'booked', owner, branch]
   );
-  res.status(201).json(apptRow(rows[0]));
+
+  // If this phone number isn't in the system yet, auto-create a lead for it
+  let createdLead = false;
+  const digits = String(b.phone || '').replace(/\D/g, '');
+  if (digits) {
+    // match both local (01x...) and international (601x...) stored formats
+    const local = digits.startsWith('60') ? '0' + digits.slice(2) : digits;
+    const intl = local.startsWith('0') ? '6' + local : local;
+    const { rows: found } = await pool.query(
+      `SELECT id FROM leads WHERE regexp_replace(coalesce(phone,''), '\\D', '', 'g') = ANY($1)`,
+      [[local, intl]]
+    );
+    if (found.length === 0) {
+      const STAGE_FROM_APPT = {
+        booked: 'APPT', confirmed: 'APPT', followup: 'Follow Up', trial: 'Show',
+        joined: 'Joined', notjoined: 'Not Interested', noshow: 'No Show',
+      };
+      const today = nowIso().slice(0, 10);
+      const trail = JSON.stringify([{ at: nowIso(), by: req.user.username, action: 'auto-created from new appointment' }]);
+      await pool.query(
+        `INSERT INTO leads (name, phone, source, stage, temperature, date_added, last_touched, notes, owner, branch, audit_trail)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [b.leadName || 'Unnamed', b.phone, b.leadSource || 'Walk-in',
+         STAGE_FROM_APPT[b.status] || 'APPT', 'Hot', today, today, '', owner, branch, trail]
+      );
+      createdLead = true;
+    }
+  }
+
+  res.status(201).json({ ...apptRow(rows[0]), createdLead });
 });
 
 app.put('/api/appointments/:id', auth, async (req, res) => {
