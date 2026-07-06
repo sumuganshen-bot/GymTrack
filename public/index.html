@@ -162,6 +162,10 @@
     cursor: grab; font-size: 13px;
   }
   .lead-card.dragging { opacity: .4; }
+  .pipe-pager { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); }
+  .pipe-pager button { background: #262a30; border: 1px solid var(--border); color: #c3cad2; border-radius: 4px; padding: 3px 10px; font-size: 11px; transition: all 0.15s ease; }
+  .pipe-pager button:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .pipe-pager button:disabled { opacity: .35; cursor: default; }
   .pipe-col.drop-over { background: var(--primary-light); }
   .lead-card .lname { font-weight: 600; color: var(--text-primary); }
   .lead-card .lmeta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
@@ -733,12 +737,31 @@ window.markAppt = async (id, status) => {
 };
 
 // ---------- Pipeline (drag & drop) ----------
+const PIPE_PAGE_SIZE = 15;
+window.pipePage = (stage, delta) => {
+  state.pipePages = state.pipePages || {};
+  state.pipePages[stage] = (state.pipePages[stage] || 0) + delta;
+  render();
+};
+
 function renderPipeline(root) {
+  state.pipePages = state.pipePages || {};
   const cols = STAGES.map(stage => {
-    const leads = state.leads.filter(l => l.stage === stage);
+    const allLeads = state.leads.filter(l => l.stage === stage);
+    const pages = Math.max(1, Math.ceil(allLeads.length / PIPE_PAGE_SIZE));
+    const page = Math.min(Math.max(state.pipePages[stage] || 0, 0), pages - 1);
+    state.pipePages[stage] = page;
+    const leads = allLeads.slice(page * PIPE_PAGE_SIZE, (page + 1) * PIPE_PAGE_SIZE);
+    const pager = allLeads.length > PIPE_PAGE_SIZE ? `
+      <div class="pipe-pager">
+        <button ${page === 0 ? 'disabled' : ''} onclick="pipePage('${stage}', -1)">&#9664;</button>
+        <span>${page + 1} / ${pages}</span>
+        <button ${page >= pages - 1 ? 'disabled' : ''} onclick="pipePage('${stage}', 1)">&#9654;</button>
+      </div>` : '';
     return `
       <div class="pipe-col" data-stage="${stage}">
-        <h3>${stage} <span class="count">${leads.length}</span></h3>
+        <h3>${stage} <span class="count">${allLeads.length}</span></h3>
+        ${pager}
         ${leads.map(l => `
           <div class="lead-card" draggable="true" data-id="${l.id}">
             <div class="lname">${escapeHtml(l.name)} <span class="pill ${l.temperature==='Hot'?'hot':'cold'}">${l.temperature}</span></div>
@@ -1053,7 +1076,7 @@ function renderAllLeads(root) {
         </tr></thead>
         <tbody>
         ${state.leads.map(l => `
-          <tr style="${inactive.includes(l.id)?'background:'+('var(--amber-bg)'):''}">
+          <tr>
             <td><strong>${escapeHtml(l.name)}</strong>${inactive.includes(l.id)?' <span class="pill amber">stale</span>':''}
               <details class="audit"><summary>Audit (${l.auditTrail.length})</summary>
                 <div class="trail">${l.auditTrail.map(t => `${(t.at||'').slice(0,10)} · ${escapeHtml(t.by)} · ${escapeHtml(t.action)}`).join('<br/>') || '—'}</div>
