@@ -176,9 +176,8 @@
   .cal-cell .d { font-weight: 600; color: var(--text-muted); }
   .cal-cell.today { outline: 2px solid var(--primary); background: var(--primary-light); }
   .cal-evt { background: #dbeafe; color: #1d4ed8; padding: 2px 4px; margin-top: 2px; border-radius: 3px; cursor: pointer; font-size: 10px; }
-  .cal-evt.tour { background: var(--green-bg); color: #3c763d; }
-  .cal-evt.followup { background: var(--amber-bg); color: #8a6d3b; }
-  .cal-evt.call { background: #ede9fe; color: #5b21b6; }
+  .cal-legend { margin-top: 12px; font-size: 11px; color: var(--text-muted); line-height: 2; }
+  .cal-legend .legend-chip { display: inline-block; vertical-align: middle; margin-right: 3px; }
 
   /* modal */
   .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 500; }
@@ -327,6 +326,23 @@ const BRANCH_WA = {
   os: { name: 'Anytime Fitness One Shamelin Mall',     maps: 'https://www.google.com/maps/search/?api=1&query=Anytime+Fitness+One+Shamelin+Mall' },
 };
 const APPT_TYPE_WA = { tour: 'gym tour \u{1F3CB}\u{FE0F}', followup: 'follow-up session \u{1F4AC}', call: 'phone call \u{1F4DE}' };
+const APPT_STATUSES = [
+  { key: 'booked',    label: 'Appointment Booked', color: '#9b59b6', text: '#fff' },
+  { key: 'followup',  label: 'Follow Up',          color: '#8a929c', text: '#fff' },
+  { key: 'noshow',    label: 'No Show',            color: '#1a1a1a', text: '#fff' },
+  { key: 'trial',     label: 'Free Trial',         color: '#337ab7', text: '#fff' },
+  { key: 'notjoined', label: 'Did Not Join',       color: '#e67e22', text: '#fff' },
+  { key: 'confirmed', label: 'Confirmed',          color: '#f1c40f', text: '#222' },
+  { key: 'joined',    label: 'Joined',             color: '#2ecc71', text: '#fff' },
+];
+// legacy status values from before this scheme
+const LEGACY_STATUS = { scheduled: 'booked', showed: 'confirmed' };
+// statuses that mean the lead physically showed up
+const SHOWED_STATUSES = ['trial', 'joined', 'notjoined', 'showed'];
+function apptStatusInfo(key) {
+  const k = LEGACY_STATUS[key] || key;
+  return APPT_STATUSES.find(s => s.key === k) || APPT_STATUSES[0];
+}
 const ROLE_TABS = {
   abm:   ['dashboard','pipeline','ratios','calendar','allLeads','org'],
   cm:    ['dashboard','pipeline','ratios','calendar','allLeads','org'],
@@ -650,9 +666,9 @@ function renderDashboard(root) {
             </tr>
             <tr>
               <td class="kpi-name">Show Rate</td>
-              <td class="kpi-actual">${thisMonthAppts.length ? Math.round(thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length * 100) : 0}%</td>
+              <td class="kpi-actual">${thisMonthAppts.length ? Math.round(thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length * 100) : 0}%</td>
               <td class="kpi-target">40%</td>
-              <td><span class="pill ${thisMonthAppts.length && thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length >= 0.4 ? 'green' : 'red'}">${thisMonthAppts.length && thisMonthAppts.filter(a=>a.status==='showed').length / thisMonthAppts.length >= 0.4 ? 'On Track' : 'Below'}</span></td>
+              <td><span class="pill ${thisMonthAppts.length && thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length >= 0.4 ? 'green' : 'red'}">${thisMonthAppts.length && thisMonthAppts.filter(a=>SHOWED_STATUSES.includes(a.status)).length / thisMonthAppts.length >= 0.4 ? 'On Track' : 'Below'}</span></td>
             </tr>
             <tr>
               <td class="kpi-name">Close Rate</td>
@@ -718,17 +734,17 @@ function renderUpcomingTable() {
         <td><span class="pill gray">${a.type}</span></td>
         <td>${apptStatusPill(a.status)}</td>
         <td>
-          <button class="btn small secondary" onclick="markAppt(${a.id},'showed')">Showed</button>
-          <button class="btn small secondary" onclick="markAppt(${a.id},'noshow')">No-show</button>
+          <button class="btn small secondary" onclick="markAppt(${a.id},'confirmed')">Confirmed</button>
+          <button class="btn small secondary" onclick="markAppt(${a.id},'noshow')">No Show</button>
+          <button class="btn small secondary" onclick="markAppt(${a.id},'joined')">Joined</button>
         </td>
       </tr>
     `).join('')}
   </tbody></table>`;
 }
 function apptStatusPill(s) {
-  if (s==='showed')  return '<span class="pill green">Showed</span>';
-  if (s==='noshow')  return '<span class="pill red">No-show</span>';
-  return '<span class="pill gray">Scheduled</span>';
+  const si = apptStatusInfo(s);
+  return `<span class="pill" style="background:${si.color};color:${si.text}">${si.label}</span>`;
 }
 
 window.markAppt = async (id, status) => {
@@ -1028,10 +1044,11 @@ function drawMonth() {
     const evts = state.appointments.filter(a => a.date === iso);
     html.push(`<div class="cal-cell ${iso===today?'today':''}" style="${inMonth?'':'opacity:.4'}">
       <div class="d">${c.getDate()}</div>
-      ${evts.map(a => `<div class="cal-evt ${a.type}" onclick="editAppt(${a.id})">${a.time} ${escapeHtml(a.leadName)}</div>`).join('')}
+      ${evts.map(a => { const si = apptStatusInfo(a.status); return `<div class="cal-evt" style="background:${si.color};color:${si.text}" onclick="editAppt(${a.id})" title="${si.label}">${a.time} ${escapeHtml(a.leadName)}</div>`; }).join('')}
     </div>`);
   }
   html.push('</div>');
+  html.push(`<div class="cal-legend">${APPT_STATUSES.map(s => `<span class="legend-chip" style="background:${s.color}"></span> ${s.label}`).join(' &nbsp; ')}</div>`);
   document.getElementById('cal-body').innerHTML = html.join('');
 }
 function drawWeek() {
@@ -1046,10 +1063,11 @@ function drawWeek() {
     const evts = state.appointments.filter(a => a.date === iso).sort((a,b)=>a.time.localeCompare(b.time));
     html.push(`<div class="cal-cell ${iso===today?'today':''}" style="min-height:200px">
       <div class="d">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]} ${c.getDate()}/${c.getMonth()+1}</div>
-      ${evts.map(a => `<div class="cal-evt ${a.type}" onclick="editAppt(${a.id})">${a.time}<br/>${escapeHtml(a.leadName)}</div>`).join('')}
+      ${evts.map(a => { const si = apptStatusInfo(a.status); return `<div class="cal-evt" style="background:${si.color};color:${si.text}" onclick="editAppt(${a.id})" title="${si.label}">${a.time}<br/>${escapeHtml(a.leadName)}</div>`; }).join('')}
     </div>`);
   }
   html.push('</div>');
+  html.push(`<div class="cal-legend">${APPT_STATUSES.map(s => `<span class="legend-chip" style="background:${s.color}"></span> ${s.label}`).join(' &nbsp; ')}</div>`);
   document.getElementById('cal-body').innerHTML = html.join('');
 }
 
@@ -1274,14 +1292,12 @@ window.editAppt = (id, prefillLead) => {
     <label>Phone</label><input id="ma-phone" value="${escapeHtml(seedPhone)}">
     <label>Date</label><input id="ma-date" type="date" value="${a?.date||todayIso()}">
     <label>Time</label><input id="ma-time" type="time" value="${a?.time||'10:00'}">
-    <label>Type</label>
-    <select id="ma-type">${['tour','followup','call'].map(s=>`<option ${a?.type===s?'selected':''}>${s}</option>`).join('')}</select>
+    <label>Status</label>
+    <select id="ma-status">${APPT_STATUSES.map(s=>`<option value="${s.key}" ${apptStatusInfo(a?.status||'booked').key===s.key?'selected':''}>${s.label}</option>`).join('')}</select>
     <label>Reminder (days before)</label>
     <select id="ma-rem"><option value="0" ${a?.reminderDays===0?'selected':''}>None</option>${[1,2,3,7].map(s=>`<option value="${s}" ${a?.reminderDays===s?'selected':''}>${s} day${s>1?'s':''}</option>`).join('')}</select>
-    <label>Status</label>
-    <select id="ma-status">${['scheduled','showed','noshow'].map(s=>`<option ${a?.status===s?'selected':''}>${s}</option>`).join('')}</select>
     <label>Notes</label><textarea id="ma-notes" rows="2">${escapeHtml(a?.notes||'')}</textarea>
-    <label style="margin-top:12px"><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
+    <label id="ma-wa-row" style="margin-top:12px;display:none"><input type="checkbox" id="ma-whatsapp" checked> Send WhatsApp confirmation on save</label>
     </div>
     <div class="actions">
       ${a ? `<button class="btn danger" id="ma-del">Delete</button>` : ''}
@@ -1294,19 +1310,25 @@ window.editAppt = (id, prefillLead) => {
     await api('/api/appointments/'+a.id, { method:'DELETE' });
     m.remove(); await loadAll(); render();
   };
+  // WhatsApp option only appears for "Appointment Booked"
+  const statusSel = m.querySelector('#ma-status');
+  const waRow = m.querySelector('#ma-wa-row');
+  const syncWaRow = () => { waRow.style.display = statusSel.value === 'booked' ? 'block' : 'none'; };
+  statusSel.addEventListener('change', syncWaRow);
+  syncWaRow();
   m.querySelector('#ma-save').onclick = async () => {
     const body = {
       leadName:     m.querySelector('#ma-name').value.trim(),
       phone:        m.querySelector('#ma-phone').value.trim(),
       date:         m.querySelector('#ma-date').value,
       time:         m.querySelector('#ma-time').value,
-      type:         m.querySelector('#ma-type').value,
+      type:         a?.type || 'tour',
       reminderDays: Number(m.querySelector('#ma-rem').value),
       status:       m.querySelector('#ma-status').value,
       branch:       'sb',
       notes:        m.querySelector('#ma-notes').value,
     };
-    const sendWa = m.querySelector('#ma-whatsapp').checked;
+    const sendWa = body.status === 'booked' && m.querySelector('#ma-whatsapp').checked;
     // Open the window synchronously (before any await) so the popup blocker allows it
     const waWin = (sendWa && body.phone) ? window.open('', '_blank') : null;
     try {
